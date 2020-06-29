@@ -145,6 +145,7 @@ int sceKernelJitCreateSharedMemory(int flags, size_t size, int protection, int *
 int sceKernelJitCreateAliasOfSharedMemory(int handle, int protection, int *destinationHandle);
 int sceKernelJitMapSharedMemory(int handle, int protection, void **destination);
 
+int sceKernelIccSetBuzzer(int mode);
 
 #ifdef __cplusplus
 }
