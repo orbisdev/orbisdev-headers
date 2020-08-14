@@ -67,4 +67,3 @@ int scePadReadState(int handle, ScePadData *data);
 #endif
 
 #endif
-	
