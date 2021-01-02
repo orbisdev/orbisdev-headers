@@ -22,7 +22,7 @@ extern "C" {
 #include <netinet/in.h>
 
 /* useless C / POSIX wrappers */
-const char sceNetInetNtop(int af, const void *src, char *dst, int size);
+char sceNetInetNtop(int af, const void *src, char *dst, int size);
 int sceNetAccept(int, struct sockaddr *, unsigned int *);
 int sceNetBind(int, struct sockaddr *, int);
 int sceNetConnect(int, struct sockaddr *, int);
