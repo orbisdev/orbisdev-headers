@@ -131,15 +131,22 @@ int sceKernelWaitEqueue(SceKernelEqueue eq, SceKernelEvent *ev, int num, int *ou
 size_t sceKernelGetDirectMemorySize();
 
 /* more interresting wrappers */
-int sceKernelAllocateDirectMemory(off_t searchStart, off_t searchEnd, size_t length, size_t alignment, int type, off_t *physicalAddressDestination);
-int sceKernelMapDirectMemory(void **addr, size_t length, int protection, int flags, off_t start, size_t alignment);
+int sceKernelAllocateDirectMemory(off_t, off_t, size_t, size_t, int, off_t *);
+int sceKernelMapMainDirectMemory(size_t, size_t, int, off_t *);
+int sceKernelMapDirectMemory(void **, size_t, int, int, off_t, size_t);
+int sceKernelMapNamedSystemFlexibleMemory(void** , size_t, int, int, const char*);
 int sceKernelMprotect(const void *, size_t, int);
+int sceKernelReserveVirtualRange(void **, size_t, int, size_t);
+
 /* sce own syscall wrappers (usefull) */
 int sceKernelLoadStartModule(const char *name, size_t argc, const void *argv, uint32_t flags, void *, int *result);
 int sceKernelDlsym(SceKernelModule handle, const char *symbol, void **address);
 int sceKernelGetModuleList(SceKernelModule *array, size_t size, size_t *available);
 int sceKernelGetModuleInfo(SceKernelModule handle, SceKernelModuleInfo *info);
 int sceKernelStopUnloadModule(SceKernelModule handle, size_t argc, const void *argv, uint32_t flags, void *, int *result);
+
+
+const char *sceKernelGetFsSandboxRandomWord();
 
 int sceKernelJitCreateSharedMemory(int flags, size_t size, int protection, int *destinationHandle);
 int sceKernelJitCreateAliasOfSharedMemory(int handle, int protection, int *destinationHandle);
