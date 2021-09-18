@@ -137,6 +137,8 @@ int sceKernelMapDirectMemory(void **, size_t, int, int, off_t, size_t);
 int sceKernelMapNamedSystemFlexibleMemory(void** , size_t, int, int, const char*);
 int sceKernelMprotect(const void *, size_t, int);
 int sceKernelReserveVirtualRange(void **, size_t, int, size_t);
+int sceKernelReleaseFlexibleMemory(void *, size_t);
+int sceKernelMunmap(void *, size_t);
 
 /* sce own syscall wrappers (usefull) */
 int sceKernelLoadStartModule(const char *name, size_t argc, const void *argv, uint32_t flags, void *, int *result);
