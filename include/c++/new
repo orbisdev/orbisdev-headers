@@ -79,6 +79,7 @@ namespace std
   /// Takes a replacement handler as the argument, returns the
   /// previous handler.
   new_handler set_new_handler(new_handler) throw();
+  new_handler get_new_handler() throw();
 } // namespace std
 
 //@{

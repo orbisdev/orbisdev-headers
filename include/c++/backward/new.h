@@ -38,5 +38,6 @@ using std::nothrow_t;
 using std::nothrow;
 using std::new_handler;
 using std::set_new_handler;
+using std::get_new_handler;
 
 #endif
