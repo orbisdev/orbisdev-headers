@@ -24,7 +24,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $FreeBSD: release/9.0.0/sys/sys/jail.h 221362 2011-05-03 07:32:58Z trasz $
+ * $FreeBSD: releng/10.3/sys/sys/jail.h 295951 2016-02-24 02:34:11Z araujo $
  */
 
 #ifndef _SYS_JAIL_H_
@@ -134,6 +134,7 @@ MALLOC_DECLARE(M_PRISON);
 #include <sys/osd.h>
 
 #define	HOSTUUIDLEN	64
+#define	OSRELEASELEN	32
 
 struct racct;
 struct prison_racct;
@@ -176,13 +177,16 @@ struct prison {
 	unsigned	 pr_allow;			/* (p) PR_ALLOW_* flags */
 	int		 pr_securelevel;		/* (p) securelevel */
 	int		 pr_enforce_statfs;		/* (p) statfs permission */
-	int		 pr_spare[5];
+	int		 pr_devfs_rsnum;		/* (p) devfs ruleset */
+	int		 pr_spare[3];
+	int		 pr_osreldate;			/* (c) kern.osreldate value */
 	unsigned long	 pr_hostid;			/* (p) jail hostid */
 	char		 pr_name[MAXHOSTNAMELEN];	/* (p) admin jail name */
 	char		 pr_path[MAXPATHLEN];		/* (c) chroot path */
 	char		 pr_hostname[MAXHOSTNAMELEN];	/* (p) jail hostname */
 	char		 pr_domainname[MAXHOSTNAMELEN];	/* (p) jail domainname */
 	char		 pr_hostuuid[HOSTUUIDLEN];	/* (p) jail hostuuid */
+	char		 pr_osrelease[OSRELEASELEN];	/* (c) kern.osrelease value */
 };
 
 struct prison_racct {
@@ -222,7 +226,15 @@ struct prison_racct {
 #define	PR_ALLOW_MOUNT			0x0010
 #define	PR_ALLOW_QUOTAS			0x0020
 #define	PR_ALLOW_SOCKET_AF		0x0040
-#define	PR_ALLOW_ALL			0x007f
+#define	PR_ALLOW_MOUNT_DEVFS		0x0080
+#define	PR_ALLOW_MOUNT_NULLFS		0x0100
+#define	PR_ALLOW_MOUNT_ZFS		0x0200
+#define	PR_ALLOW_MOUNT_PROCFS		0x0400
+#define	PR_ALLOW_MOUNT_TMPFS		0x0800
+#define	PR_ALLOW_MOUNT_FDESCFS		0x1000
+#define	PR_ALLOW_MOUNT_LINPROCFS	0x2000
+#define	PR_ALLOW_MOUNT_LINSYSFS		0x4000
+#define	PR_ALLOW_ALL			0x7fff
 
 /*
  * OSD methods
@@ -337,6 +349,8 @@ SYSCTL_DECL(_security_jail_param);
 	sysctl_jail_param, fmt, descr)
 #define	SYSCTL_JAIL_PARAM_NODE(module, descr)				\
     SYSCTL_NODE(_security_jail_param, OID_AUTO, module, 0, 0, descr)
+#define	SYSCTL_JAIL_PARAM_SUBNODE(parent, module, descr)		\
+    SYSCTL_NODE(_security_jail_param_##parent, OID_AUTO, module, 0, 0, descr)
 #define	SYSCTL_JAIL_PARAM_SYS_NODE(module, access, descr)		\
     SYSCTL_JAIL_PARAM_NODE(module, descr);				\
     SYSCTL_JAIL_PARAM(_##module, , CTLTYPE_INT | (access), "E,jailsys",	\
@@ -355,6 +369,7 @@ void getcredhostname(struct ucred *, char *, size_t);
 void getcreddomainname(struct ucred *, char *, size_t);
 void getcredhostuuid(struct ucred *, char *, size_t);
 void getcredhostid(struct ucred *, unsigned long *);
+void prison0_init(void);
 int prison_allow(struct ucred *, unsigned);
 int prison_check(struct ucred *cred1, struct ucred *cred2);
 int prison_owns_vnet(struct ucred *);

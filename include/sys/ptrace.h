@@ -27,7 +27,7 @@
  * SUCH DAMAGE.
  *
  *	@(#)ptrace.h	8.2 (Berkeley) 1/4/94
- * $FreeBSD: release/9.0.0/sys/sys/ptrace.h 217819 2011-01-25 10:59:21Z kib $
+ * $FreeBSD: releng/10.3/sys/sys/ptrace.h 290464 2015-11-06 20:10:54Z jhb $
  */
 
 #ifndef	_SYS_PTRACE_H_
@@ -107,11 +107,14 @@ struct ptrace_lwpinfo {
 #define	PL_FLAG_EXEC	0x10	/* exec(2) succeeded */
 #define	PL_FLAG_SI	0x20	/* siginfo is valid */
 #define	PL_FLAG_FORKED	0x40	/* new child */
+#define	PL_FLAG_CHILD	0x80	/* I am from child */
 	sigset_t	pl_sigmask;	/* LWP signal mask */
 	sigset_t	pl_siglist;	/* LWP pending signal */
 	struct __siginfo pl_siginfo;	/* siginfo for signal */
 	char		pl_tdname[MAXCOMLEN + 1]; /* LWP name */
-	int		pl_child_pid;	/* New child pid */
+	pid_t		pl_child_pid;	/* New child pid */
+	u_int		pl_syscall_code;
+	u_int		pl_syscall_narg;
 };
 
 /* Argument structure for PT_VM_ENTRY. */
@@ -130,12 +133,6 @@ struct ptrace_vm_entry {
 
 #ifdef _KERNEL
 
-#define	PTRACESTOP_SC(p, td, flag)				\
-	if ((p)->p_flag & P_TRACED && (p)->p_stops & (flag)) {	\
-		PROC_LOCK(p);					\
-		ptracestop((td), SIGTRAP);			\
-		PROC_UNLOCK(p);					\
-	}
 /*
  * The flags below are used for ptrace(2) tracing and have no relation
  * to procfs.  They are stored in struct proc's p_stops member.

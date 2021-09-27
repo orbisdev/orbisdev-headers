@@ -30,7 +30,7 @@
  * SUCH DAMAGE.
  *
  *	@(#)stdio.h	8.5 (Berkeley) 4/29/95
- * $FreeBSD: release/9.0.0/include/stdio.h 210957 2010-08-06 19:35:40Z ed $
+ * $FreeBSD: releng/10.3/include/stdio.h 291602 2015-12-01 18:19:23Z ngie $
  */
 
 #ifndef	_STDIO_H_
@@ -107,7 +107,7 @@ struct __sbuf {
  * inline functions.  To preserve ABI compat, these members must not
  * be disturbed.  These members are marked below with (*).
  */
-typedef	struct __sFILE {
+struct __sFILE {
 	unsigned char *_p;	/* (*) current position in (some) buffer */
 	int	_r;		/* (*) read space left for getc() */
 	int	_w;		/* (*) write space left for putc() */
@@ -144,8 +144,12 @@ typedef	struct __sFILE {
 	int	_fl_count;	/* recursive lock count */
 	int	_orientation;	/* orientation for fwide() */
 	__mbstate_t _mbstate;	/* multibyte conversion state */
-} FILE;
-
+	int	_flags2;	/* additional flags */
+};
+#ifndef _STDFILE_DECLARED
+#define _STDFILE_DECLARED
+typedef struct __sFILE FILE;
+#endif
 #ifndef _STDSTREAM_DECLARED
 __BEGIN_DECLS
 extern FILE *__stdinp;
@@ -163,7 +167,7 @@ __END_DECLS
 #define	__SRW	0x0010		/* open for reading & writing */
 #define	__SEOF	0x0020		/* found EOF */
 #define	__SERR	0x0040		/* found error */
-#define	__SMBF	0x0080		/* _buf is from malloc */
+#define	__SMBF	0x0080		/* _bf._base is from malloc */
 #define	__SAPP	0x0100		/* fdopen()ed in append mode */
 #define	__SSTR	0x0200		/* this is an sprintf/snprintf string */
 #define	__SOPT	0x0400		/* do fseek() optimization */
@@ -172,6 +176,8 @@ __END_DECLS
 #define	__SMOD	0x2000		/* true => fgetln modified _p text */
 #define	__SALC	0x4000		/* allocate string space dynamically */
 #define	__SIGN	0x8000		/* ignore this file in _fwalk */
+
+#define	__S2OAP	0x0001		/* O_APPEND mode is set */
 
 /*
  * The following three definitions are for ANSI C, which took them
@@ -202,7 +208,7 @@ __END_DECLS
 
 /* System V/ANSI C; this is the wrong way to do this, do *not* use these. */
 #if __XSI_VISIBLE
-#define	P_tmpdir	"/var/tmp/"
+#define	P_tmpdir	"/tmp/"
 #endif
 #define	L_tmpnam	1024	/* XXX must be == PATH_MAX */
 #define	TMP_MAX		308915776
@@ -222,6 +228,9 @@ __END_DECLS
 #define	stderr	__stderrp
 
 __BEGIN_DECLS
+#ifdef _XLOCALE_H_
+#include <xlocale/_stdio.h>
+#endif
 /*
  * Functions defined in ANSI C standard.
  */
@@ -337,8 +346,10 @@ char	*tempnam(const char *, const char *);
 #endif
 
 #if __BSD_VISIBLE || __POSIX_VISIBLE >= 200809
+FILE	*fmemopen(void * __restrict, size_t, const char * __restrict);
 ssize_t	 getdelim(char ** __restrict, size_t * __restrict, int,
 	    FILE * __restrict);
+FILE	*open_memstream(char **, size_t *);
 int	 renameat(int, const char *, int, const char *);
 int	 vdprintf(int, const char * __restrict, __va_list);
 
@@ -388,6 +399,7 @@ int	 (dprintf)(int, const char * __restrict, ...);
 int	 asprintf(char **, const char *, ...) __printflike(2, 3);
 char	*ctermid_r(char *);
 void	 fcloseall(void);
+int	 fdclose(FILE *, int *);
 char	*fgetln(FILE *, size_t *);
 const char *fmtcheck(const char *, const char *) __format_arg(2);
 int	 fpurge(FILE *);
@@ -401,8 +413,8 @@ int	 vasprintf(char **, const char *, __va_list)
  * positive errno values.  Use strerror() or strerror_r() from <string.h>
  * instead.
  */
-extern __const int sys_nerr;
-extern __const char *__const sys_errlist[];
+extern const int sys_nerr;
+extern const char * const sys_errlist[];
 
 /*
  * Stdio function-access interface.
@@ -468,12 +480,15 @@ static __inline int __sputc(int _c, FILE *_p) {
 		(*(p)->_p = (c), (int)*(p)->_p++))
 #endif
 
+extern int __isthreaded;
+
+#ifndef __cplusplus
+
 #define	__sfeof(p)	(((p)->_flags & __SEOF) != 0)
 #define	__sferror(p)	(((p)->_flags & __SERR) != 0)
 #define	__sclearerr(p)	((void)((p)->_flags &= ~(__SERR|__SEOF)))
 #define	__sfileno(p)	((p)->_file)
 
-extern int __isthreaded;
 
 #define	feof(p)		(!__isthreaded ? __sfeof(p) : (feof)(p))
 #define	ferror(p)	(!__isthreaded ? __sferror(p) : (ferror)(p))
@@ -506,6 +521,7 @@ extern int __isthreaded;
 #define	getchar_unlocked()	getc_unlocked(stdin)
 #define	putchar_unlocked(x)	putc_unlocked(x, stdout)
 #endif
+#endif /* __cplusplus */
 
 __END_DECLS
 #endif /* !_STDIO_H_ */

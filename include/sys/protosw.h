@@ -27,7 +27,7 @@
  * SUCH DAMAGE.
  *
  *	@(#)protosw.h	8.1 (Berkeley) 6/2/93
- * $FreeBSD$
+ * $FreeBSD: releng/10.3/sys/sys/protosw.h 247667 2013-03-02 21:11:30Z pjd $
  */
 
 #ifndef _SYS_PROTOSW_H_
@@ -210,7 +210,7 @@ struct pr_usrreqs {
 #define	PRUS_EOF	0x2
 #define	PRUS_MORETOCOME	0x4
 	int	(*pru_sense)(struct socket *so, struct stat *sb);
-        int	(*pru_shutdown)(struct socket *so);
+	int	(*pru_shutdown)(struct socket *so);
 	int	(*pru_flush)(struct socket *so, int direction);
 	int	(*pru_sockaddr)(struct socket *so, struct sockaddr **nam);
 	int	(*pru_sosend)(struct socket *so, struct sockaddr *addr,
@@ -223,6 +223,10 @@ struct pr_usrreqs {
 		    struct ucred *cred, struct thread *td);
 	void	(*pru_sosetlabel)(struct socket *so);
 	void	(*pru_close)(struct socket *so);
+	int	(*pru_bindat)(int fd, struct socket *so, struct sockaddr *nam,
+		    struct thread *td);
+	int	(*pru_connectat)(int fd, struct socket *so,
+		    struct sockaddr *nam, struct thread *td);
 };
 
 /*
@@ -232,7 +236,11 @@ int	pru_accept_notsupp(struct socket *so, struct sockaddr **nam);
 int	pru_attach_notsupp(struct socket *so, int proto, struct thread *td);
 int	pru_bind_notsupp(struct socket *so, struct sockaddr *nam,
 	    struct thread *td);
+int	pru_bindat_notsupp(int fd, struct socket *so, struct sockaddr *nam,
+	    struct thread *td);
 int	pru_connect_notsupp(struct socket *so, struct sockaddr *nam,
+	    struct thread *td);
+int	pru_connectat_notsupp(int fd, struct socket *so, struct sockaddr *nam,
 	    struct thread *td);
 int	pru_connect2_notsupp(struct socket *so1, struct socket *so2);
 int	pru_control_notsupp(struct socket *so, u_long cmd, caddr_t data,
@@ -266,7 +274,7 @@ int	pru_sopoll_notsupp(struct socket *so, int events, struct ucred *cred,
  */
 #define	PRC_IFDOWN		0	/* interface transition */
 #define	PRC_ROUTEDEAD		1	/* select new route if possible ??? */
-#define	PRC_IFUP		2 	/* interface has come back up */
+#define	PRC_IFUP		2	/* interface has come back up */
 #define	PRC_QUENCH2		3	/* DEC congestion bit says slow down */
 #define	PRC_QUENCH		4	/* some one said to slow down */
 #define	PRC_MSGSIZE		5	/* message size forced drop */
@@ -330,6 +338,7 @@ char	*prcorequests[] = {
 #ifdef _KERNEL
 void	pfctlinput(int, struct sockaddr *);
 void	pfctlinput2(int, struct sockaddr *, void *);
+struct domain *pffinddomain(int family);
 struct protosw *pffindproto(int family, int protocol, int type);
 struct protosw *pffindtype(int family, int type);
 int	pf_proto_register(int family, struct protosw *npr);

@@ -27,7 +27,7 @@
  * SUCH DAMAGE.
  *
  *	@(#)signalvar.h	8.6 (Berkeley) 2/19/95
- * $FreeBSD: release/9.0.0/sys/sys/signalvar.h 225617 2011-09-16 13:58:51Z kmacy $
+ * $FreeBSD: releng/10.3/sys/sys/signalvar.h 277697 2015-01-25 13:09:53Z kib $
  */
 
 #ifndef _SYS_SIGNALVAR_H_
@@ -63,7 +63,7 @@ struct sigacts {
 	sigset_t ps_osigset;		/* Signals using <= 3.x osigset_t. */
 	sigset_t ps_usertramp;		/* SunOS compat; libc sigtramp. XXX */
 	int	ps_flag;
-	int	ps_refcnt;
+	u_int	ps_refcnt;
 	struct mtx ps_mtx;
 };
 
@@ -318,16 +318,14 @@ struct thread;
 
 extern struct mtx	sigio_lock;
 
-/* Values for stop_allowed parameter for cursig(). */
-#define	SIG_STOP_ALLOWED	100
-#define	SIG_STOP_NOT_ALLOWED	101
-
 /* Flags for kern_sigprocmask(). */
 #define	SIGPROCMASK_OLD		0x0001
 #define	SIGPROCMASK_PROC_LOCKED	0x0002
 #define	SIGPROCMASK_PS_LOCKED	0x0004
 
-int	cursig(struct thread *td, int stop_allowed);
+int	cursig(struct thread *td);
+int	sigdeferstop(void);
+int	sigallowstop(void);
 void	execsigs(struct proc *p);
 void	gsignal(int pgid, int sig, ksiginfo_t *ksi);
 void	killproc(struct proc *p, char *why);

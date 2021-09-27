@@ -36,7 +36,7 @@
  * SUCH DAMAGE.
  *
  *	@(#)param.h	8.1 (Berkeley) 6/10/93
- * $FreeBSD: release/9.0.0/sys/amd64/include/param.h 224217 2011-07-19 13:00:30Z attilio $
+ * $FreeBSD: releng/10.3/sys/amd64/include/param.h 286305 2015-08-05 07:21:44Z kib $
  */
 
 
@@ -69,6 +69,10 @@
 #endif
 #else
 #define MAXCPU		1
+#endif
+
+#ifndef MAXMEMDOM
+#define	MAXMEMDOM	1
 #endif
 
 #define	ALIGNBYTES		_ALIGNBYTES
@@ -123,14 +127,6 @@
 #define	KSTACK_GUARD_PAGES 1	/* pages of kstack guard; 0 disables */
 
 /*
- * Ceiling on amount of swblock kva space, can be changed via
- * the kern.maxswzone /boot/loader.conf variable.
- */
-#ifndef VM_SWZONE_SIZE_MAX
-#define	VM_SWZONE_SIZE_MAX	(32 * 1024 * 1024)
-#endif
-
-/*
  * Mach derived conversion macros
  */
 #define	round_page(x)	((((unsigned long)(x)) + PAGE_MASK) & ~(PAGE_MASK))
@@ -146,5 +142,8 @@
 #define	amd64_ptob(x)	((unsigned long)(x) << PAGE_SHIFT)
 
 #define	pgtok(x)	((unsigned long)(x) * (PAGE_SIZE / 1024)) 
+
+#define	INKERNEL(va) (((va) >= DMAP_MIN_ADDRESS && (va) < DMAP_MAX_ADDRESS) \
+    || ((va) >= VM_MIN_KERNEL_ADDRESS && (va) < VM_MAX_KERNEL_ADDRESS))
 
 #endif /* !_AMD64_INCLUDE_PARAM_H_ */

@@ -27,7 +27,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $FreeBSD: release/9.0.0/sys/amd64/include/cpufunc.h 223796 2011-07-05 18:42:10Z jkim $
+ * $FreeBSD: releng/10.3/sys/amd64/include/cpufunc.h 290189 2015-10-30 10:02:57Z kib $
  */
 
 /*
@@ -107,6 +107,20 @@ clflush(u_long addr)
 }
 
 static __inline void
+clflushopt(u_long addr)
+{
+
+	__asm __volatile(".byte 0x66;clflush %0" : : "m" (*(char *)addr));
+}
+
+static __inline void
+clts(void)
+{
+
+	__asm __volatile("clts");
+}
+
+static __inline void
 disable_intr(void)
 {
 	__asm __volatile("cli" : : : "memory");
@@ -147,6 +161,14 @@ ffsl(long mask)
 	return (mask == 0 ? mask : (int)bsfq((u_long)mask) + 1);
 }
 
+#define	HAVE_INLINE_FFSLL
+
+static __inline int
+ffsll(long long mask)
+{
+	return (ffsl((long)mask));
+}
+
 #define	HAVE_INLINE_FLS
 
 static __inline int
@@ -161,6 +183,14 @@ static __inline int
 flsl(long mask)
 {
 	return (mask == 0 ? mask : (int)bsrq((u_long)mask) + 1);
+}
+
+#define	HAVE_INLINE_FLSLL
+
+static __inline int
+flsll(long long mask)
+{
+	return (flsl((long)mask));
 }
 
 #endif /* _KERNEL */
@@ -271,6 +301,22 @@ static __inline void
 outw(u_int port, u_short data)
 {
 	__asm __volatile("outw %0, %w1" : : "a" (data), "Nd" (port));
+}
+
+static __inline u_long
+popcntq(u_long mask)
+{
+	u_long result;
+
+	__asm __volatile("popcntq %1,%0" : "=r" (result) : "rm" (mask));
+	return (result);
+}
+
+static __inline void
+lfence(void)
+{
+
+	__asm __volatile("lfence" : : : "memory");
 }
 
 static __inline void
@@ -409,6 +455,25 @@ rcr4(void)
 	return (data);
 }
 
+static __inline u_long
+rxcr(u_int reg)
+{
+	u_int low, high;
+
+	__asm __volatile("xgetbv" : "=a" (low), "=d" (high) : "c" (reg));
+	return (low | ((uint64_t)high << 32));
+}
+
+static __inline void
+load_xcr(u_int reg, u_long val)
+{
+	u_int low, high;
+
+	low = val;
+	high = val >> 32;
+	__asm __volatile("xsetbv" : : "c" (reg), "a" (low), "d" (high));
+}
+
 /*
  * Global TLB flush (except for thise for pages marked PG_G)
  */
@@ -417,6 +482,34 @@ invltlb(void)
 {
 
 	load_cr3(rcr3());
+}
+
+#ifndef CR4_PGE
+#define	CR4_PGE	0x00000080	/* Page global enable */
+#endif
+
+/*
+ * Perform the guaranteed invalidation of all TLB entries.  This
+ * includes the global entries, and entries in all PCIDs, not only the
+ * current context.  The function works both on non-PCID CPUs and CPUs
+ * with the PCID turned off or on.  See IA-32 SDM Vol. 3a 4.10.4.1
+ * Operations that Invalidate TLBs and Paging-Structure Caches.
+ */
+static __inline void
+invltlb_globpcid(void)
+{
+	uint64_t cr4;
+
+	cr4 = rcr4();
+	load_cr4(cr4 & ~CR4_PGE);
+	/*
+	 * Although preemption at this point could be detrimental to
+	 * performance, it would not lead to an error.  PG_G is simply
+	 * ignored if CR4.PGE is clear.  Moreover, in case this block
+	 * is re-entered, the load_cr4() either above or below will
+	 * modify CR4.PGE flushing the TLB.
+	 */
+	load_cr4(cr4 | CR4_PGE);
 }
 
 /*
@@ -428,6 +521,26 @@ invlpg(u_long addr)
 {
 
 	__asm __volatile("invlpg %0" : : "m" (*(char *)addr) : "memory");
+}
+
+#define	INVPCID_ADDR	0
+#define	INVPCID_CTX	1
+#define	INVPCID_CTXGLOB	2
+#define	INVPCID_ALLCTX	3
+
+struct invpcid_descr {
+	uint64_t	pcid:12 __packed;
+	uint64_t	pad:52 __packed;
+	uint64_t	addr;
+} __packed;
+
+static __inline void
+invpcid(struct invpcid_descr *d, int type)
+{
+
+	/* invpcid (%rdx),%rax */
+	__asm __volatile(".byte 0x66,0x0f,0x38,0x82,0x02"
+	    : : "d" (d), "a" ((u_long)type) : "memory");
 }
 
 static __inline u_short
@@ -674,6 +787,9 @@ intr_restore(register_t rflags)
 int	breakpoint(void);
 u_int	bsfl(u_int mask);
 u_int	bsrl(u_int mask);
+void	clflush(u_long addr);
+void	clts(void);
+void	cpuid_count(u_int ax, u_int cx, u_int *p);
 void	disable_intr(void);
 void	do_cpuid(u_int ax, u_int *p);
 void	enable_intr(void);
@@ -727,7 +843,7 @@ uint64_t rdr5(void);
 uint64_t rdr6(void);
 uint64_t rdr7(void);
 uint64_t rdtsc(void);
-u_int	read_rflags(void);
+u_long	read_rflags(void);
 u_int	rfs(void);
 u_int	rgs(void);
 void	wbinvd(void);

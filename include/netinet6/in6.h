@@ -58,7 +58,7 @@
  * SUCH DAMAGE.
  *
  *	@(#)in.h	8.3 (Berkeley) 1/3/94
- * $FreeBSD: release/9.0.0/sys/netinet6/in6.h 225698 2011-09-20 20:27:26Z kmacy $
+ * $FreeBSD: releng/10.3/sys/netinet6/in6.h 272662 2014-10-06 17:08:19Z tuexen $
  */
 
 #ifndef __KAME_NETINET_IN_H_INCLUDED_
@@ -235,37 +235,37 @@ extern const struct in6_addr in6addr_linklocal_allv2routers;
  * Unspecified
  */
 #define IN6_IS_ADDR_UNSPECIFIED(a)	\
-	((*(const u_int32_t *)(const void *)(&(a)->s6_addr[0]) == 0) &&	\
-	 (*(const u_int32_t *)(const void *)(&(a)->s6_addr[4]) == 0) &&	\
-	 (*(const u_int32_t *)(const void *)(&(a)->s6_addr[8]) == 0) &&	\
-	 (*(const u_int32_t *)(const void *)(&(a)->s6_addr[12]) == 0))
+	((a)->__u6_addr.__u6_addr32[0] == 0 &&	\
+	 (a)->__u6_addr.__u6_addr32[1] == 0 &&	\
+	 (a)->__u6_addr.__u6_addr32[2] == 0 &&	\
+	 (a)->__u6_addr.__u6_addr32[3] == 0)
 
 /*
  * Loopback
  */
 #define IN6_IS_ADDR_LOOPBACK(a)		\
-	((*(const u_int32_t *)(const void *)(&(a)->s6_addr[0]) == 0) &&	\
-	 (*(const u_int32_t *)(const void *)(&(a)->s6_addr[4]) == 0) &&	\
-	 (*(const u_int32_t *)(const void *)(&(a)->s6_addr[8]) == 0) &&	\
-	 (*(const u_int32_t *)(const void *)(&(a)->s6_addr[12]) == ntohl(1)))
+	((a)->__u6_addr.__u6_addr32[0] == 0 &&	\
+	 (a)->__u6_addr.__u6_addr32[1] == 0 &&	\
+	 (a)->__u6_addr.__u6_addr32[2] == 0 &&	\
+	 (a)->__u6_addr.__u6_addr32[3] == ntohl(1))
 
 /*
  * IPv4 compatible
  */
 #define IN6_IS_ADDR_V4COMPAT(a)		\
-	((*(const u_int32_t *)(const void *)(&(a)->s6_addr[0]) == 0) &&	\
-	 (*(const u_int32_t *)(const void *)(&(a)->s6_addr[4]) == 0) &&	\
-	 (*(const u_int32_t *)(const void *)(&(a)->s6_addr[8]) == 0) &&	\
-	 (*(const u_int32_t *)(const void *)(&(a)->s6_addr[12]) != 0) &&	\
-	 (*(const u_int32_t *)(const void *)(&(a)->s6_addr[12]) != ntohl(1)))
+	((a)->__u6_addr.__u6_addr32[0] == 0 &&	\
+	 (a)->__u6_addr.__u6_addr32[1] == 0 &&	\
+	 (a)->__u6_addr.__u6_addr32[2] == 0 &&	\
+	 (a)->__u6_addr.__u6_addr32[3] != 0 &&	\
+	 (a)->__u6_addr.__u6_addr32[3] != ntohl(1))
 
 /*
  * Mapped
  */
 #define IN6_IS_ADDR_V4MAPPED(a)		      \
-	((*(const u_int32_t *)(const void *)(&(a)->s6_addr[0]) == 0) &&	\
-	 (*(const u_int32_t *)(const void *)(&(a)->s6_addr[4]) == 0) &&	\
-	 (*(const u_int32_t *)(const void *)(&(a)->s6_addr[8]) == ntohl(0x0000ffff)))
+	((a)->__u6_addr.__u6_addr32[0] == 0 &&	\
+	 (a)->__u6_addr.__u6_addr32[1] == 0 &&	\
+	 (a)->__u6_addr.__u6_addr32[2] == ntohl(0x0000ffff))
 
 /*
  * KAME Scope Values
@@ -361,11 +361,11 @@ extern const struct in6_addr in6addr_linklocal_allv2routers;
 
 #define IFA6_IS_DEPRECATED(a) \
 	((a)->ia6_lifetime.ia6t_pltime != ND6_INFINITE_LIFETIME && \
-	 (u_int32_t)((time_second - (a)->ia6_updatetime)) > \
+	 (u_int32_t)((time_uptime - (a)->ia6_updatetime)) > \
 	 (a)->ia6_lifetime.ia6t_pltime)
 #define IFA6_IS_INVALID(a) \
 	((a)->ia6_lifetime.ia6t_vltime != ND6_INFINITE_LIFETIME && \
-	 (u_int32_t)((time_second - (a)->ia6_updatetime)) > \
+	 (u_int32_t)((time_uptime - (a)->ia6_updatetime)) > \
 	 (a)->ia6_lifetime.ia6t_vltime)
 #endif /* _KERNEL */
 
@@ -622,33 +622,42 @@ struct ip6_mtuinfo {
 #endif /* __BSD_VISIBLE */
 
 /*
- * Redefinition of mbuf flags
+ * Since both netinet/ and netinet6/ call into netipsec/ and netpfil/,
+ * the protocol specific mbuf flags are shared between them.
  */
-#define	M_AUTHIPHDR	M_PROTO2
-#define	M_DECRYPTED	M_PROTO3
-#define	M_LOOP		M_PROTO4
-#define	M_AUTHIPDGM	M_PROTO5
-#define	M_RTALERT_MLD	M_PROTO6
+#define	M_FASTFWD_OURS		M_PROTO1	/* changed dst to local */
+#define	M_IP6_NEXTHOP		M_PROTO2	/* explicit ip nexthop */
+#define	M_IP_NEXTHOP		M_PROTO2	/* explicit ip nexthop */
+#define	M_SKIP_FIREWALL		M_PROTO3	/* skip firewall processing */
+#define	M_AUTHIPHDR		M_PROTO4
+#define	M_DECRYPTED		M_PROTO5
+#define	M_LOOP			M_PROTO6
+#define	M_AUTHIPDGM		M_PROTO7
+#define	M_RTALERT_MLD		M_PROTO8
 
 #ifdef _KERNEL
 struct cmsghdr;
+struct ip6_hdr;
 
-int	in6_cksum __P((struct mbuf *, u_int8_t, u_int32_t, u_int32_t));
-int	in6_localaddr __P((struct in6_addr *));
+int	in6_cksum_pseudo(struct ip6_hdr *, uint32_t, uint8_t, uint16_t);
+int	in6_cksum(struct mbuf *, u_int8_t, u_int32_t, u_int32_t);
+int	in6_cksum_partial(struct mbuf *, u_int8_t, u_int32_t, u_int32_t,
+			  u_int32_t);
+int	in6_localaddr(struct in6_addr *);
 int	in6_localip(struct in6_addr *);
-int	in6_addrscope __P((struct in6_addr *));
-struct	in6_ifaddr *in6_ifawithifp __P((struct ifnet *, struct in6_addr *));
-extern void in6_if_up __P((struct ifnet *));
+int	in6_addrscope(struct in6_addr *);
+struct	in6_ifaddr *in6_ifawithifp(struct ifnet *, struct in6_addr *);
+extern void in6_if_up(struct ifnet *);
 struct sockaddr;
 extern	u_char	ip6_protox[];
 
-void	in6_sin6_2_sin __P((struct sockaddr_in *sin,
-			    struct sockaddr_in6 *sin6));
-void	in6_sin_2_v4mapsin6 __P((struct sockaddr_in *sin,
-				 struct sockaddr_in6 *sin6));
-void	in6_sin6_2_sin_in_sock __P((struct sockaddr *nam));
-void	in6_sin_2_v4mapsin6_in_sock __P((struct sockaddr **nam));
-extern void addrsel_policy_init __P((void));
+void	in6_sin6_2_sin(struct sockaddr_in *sin,
+			    struct sockaddr_in6 *sin6);
+void	in6_sin_2_v4mapsin6(struct sockaddr_in *sin,
+				 struct sockaddr_in6 *sin6);
+void	in6_sin6_2_sin_in_sock(struct sockaddr *nam);
+void	in6_sin_2_v4mapsin6_in_sock(struct sockaddr **nam);
+extern void addrsel_policy_init(void);
 
 #define	satosin6(sa)	((struct sockaddr_in6 *)(sa))
 #define	sin6tosa(sin6)	((struct sockaddr *)(sin6))
@@ -672,43 +681,43 @@ typedef	__socklen_t	socklen_t;
 __BEGIN_DECLS
 struct cmsghdr;
 
-extern int inet6_option_space __P((int));
-extern int inet6_option_init __P((void *, struct cmsghdr **, int));
-extern int inet6_option_append __P((struct cmsghdr *, const uint8_t *,
-	int, int));
-extern uint8_t *inet6_option_alloc __P((struct cmsghdr *, int, int, int));
-extern int inet6_option_next __P((const struct cmsghdr *, uint8_t **));
-extern int inet6_option_find __P((const struct cmsghdr *, uint8_t **, int));
+extern int inet6_option_space(int);
+extern int inet6_option_init(void *, struct cmsghdr **, int);
+extern int inet6_option_append(struct cmsghdr *, const uint8_t *,
+	int, int);
+extern uint8_t *inet6_option_alloc(struct cmsghdr *, int, int, int);
+extern int inet6_option_next(const struct cmsghdr *, uint8_t **);
+extern int inet6_option_find(const struct cmsghdr *, uint8_t **, int);
 
-extern size_t inet6_rthdr_space __P((int, int));
-extern struct cmsghdr *inet6_rthdr_init __P((void *, int));
-extern int inet6_rthdr_add __P((struct cmsghdr *, const struct in6_addr *,
-	unsigned int));
-extern int inet6_rthdr_lasthop __P((struct cmsghdr *, unsigned int));
+extern size_t inet6_rthdr_space(int, int);
+extern struct cmsghdr *inet6_rthdr_init(void *, int);
+extern int inet6_rthdr_add(struct cmsghdr *, const struct in6_addr *,
+	unsigned int);
+extern int inet6_rthdr_lasthop(struct cmsghdr *, unsigned int);
 #if 0 /* not implemented yet */
-extern int inet6_rthdr_reverse __P((const struct cmsghdr *, struct cmsghdr *));
+extern int inet6_rthdr_reverse(const struct cmsghdr *, struct cmsghdr *);
 #endif
-extern int inet6_rthdr_segments __P((const struct cmsghdr *));
-extern struct in6_addr *inet6_rthdr_getaddr __P((struct cmsghdr *, int));
-extern int inet6_rthdr_getflags __P((const struct cmsghdr *, int));
+extern int inet6_rthdr_segments(const struct cmsghdr *);
+extern struct in6_addr *inet6_rthdr_getaddr(struct cmsghdr *, int);
+extern int inet6_rthdr_getflags(const struct cmsghdr *, int);
 
-extern int inet6_opt_init __P((void *, socklen_t));
-extern int inet6_opt_append __P((void *, socklen_t, int, uint8_t, socklen_t,
-	uint8_t, void **));
-extern int inet6_opt_finish __P((void *, socklen_t, int));
-extern int inet6_opt_set_val __P((void *, int, void *, socklen_t));
+extern int inet6_opt_init(void *, socklen_t);
+extern int inet6_opt_append(void *, socklen_t, int, uint8_t, socklen_t,
+	uint8_t, void **);
+extern int inet6_opt_finish(void *, socklen_t, int);
+extern int inet6_opt_set_val(void *, int, void *, socklen_t);
 
-extern int inet6_opt_next __P((void *, socklen_t, int, uint8_t *, socklen_t *,
-	void **));
-extern int inet6_opt_find __P((void *, socklen_t, int, uint8_t, socklen_t *,
-	void **));
-extern int inet6_opt_get_val __P((void *, int, void *, socklen_t));
-extern socklen_t inet6_rth_space __P((int, int));
-extern void *inet6_rth_init __P((void *, socklen_t, int, int));
-extern int inet6_rth_add __P((void *, const struct in6_addr *));
-extern int inet6_rth_reverse __P((const void *, void *));
-extern int inet6_rth_segments __P((const void *));
-extern struct in6_addr *inet6_rth_getaddr __P((const void *, int));
+extern int inet6_opt_next(void *, socklen_t, int, uint8_t *, socklen_t *,
+	void **);
+extern int inet6_opt_find(void *, socklen_t, int, uint8_t, socklen_t *,
+	void **);
+extern int inet6_opt_get_val(void *, int, void *, socklen_t);
+extern socklen_t inet6_rth_space(int, int);
+extern void *inet6_rth_init(void *, socklen_t, int, int);
+extern int inet6_rth_add(void *, const struct in6_addr *);
+extern int inet6_rth_reverse(const void *, void *);
+extern int inet6_rth_segments(const void *);
+extern struct in6_addr *inet6_rth_getaddr(const void *, int);
 __END_DECLS
 
 #endif /* __BSD_VISIBLE */

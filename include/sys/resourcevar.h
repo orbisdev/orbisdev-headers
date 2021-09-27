@@ -27,7 +27,7 @@
  * SUCH DAMAGE.
  *
  *	@(#)resourcevar.h	8.4 (Berkeley) 1/9/95
- * $FreeBSD: release/9.0.0/sys/sys/resourcevar.h 224188 2011-07-18 17:33:08Z jhb $
+ * $FreeBSD: releng/10.3/sys/sys/resourcevar.h 230470 2012-01-22 20:25:00Z trociny $
  */
 
 #ifndef	_SYS_RESOURCEVAR_H_
@@ -120,6 +120,8 @@ int	 chgsbsize(struct uidinfo *uip, u_int *hiwat, u_int to,
 	    rlim_t maxval);
 int	 chgptscnt(struct uidinfo *uip, int diff, rlim_t maxval);
 int	 fuswintr(void *base);
+int	 kern_proc_setrlimit(struct thread *td, struct proc *p, u_int which,
+	    struct rlimit *limp);
 struct plimit
 	*lim_alloc(void);
 void	 lim_copy(struct plimit *dst, struct plimit *src);

@@ -27,7 +27,7 @@
  * SUCH DAMAGE.
  *
  *	@(#)string.h	8.1 (Berkeley) 6/2/93
- * $FreeBSD: release/9.0.0/include/string.h 203964 2010-02-16 19:39:50Z imp $
+ * $FreeBSD: releng/10.3/include/string.h 246803 2013-02-14 19:26:58Z zeising $
  */
 
 #ifndef _STRING_H_
@@ -74,6 +74,9 @@ char	*strcasestr(const char *, const char *) __pure;
 #endif
 char	*strcat(char * __restrict, const char * __restrict);
 char	*strchr(const char *, int) __pure;
+#if __BSD_VISIBLE
+char	*strchrnul(const char*, int) __pure;
+#endif
 int	 strcmp(const char *, const char *) __pure;
 int	 strcoll(const char *, const char *);
 char	*strcpy(char * __restrict, const char * __restrict);
@@ -132,6 +135,10 @@ void	 swab(const void * __restrict, void * __restrict, ssize_t);
 #endif /* _SWAB_DECLARED */
 
 #endif /* __BSD_VISIBLE */
+
+#if __POSIX_VISIBLE >= 200809 || defined(_XLOCALE_H_)
+#include <xlocale/_string.h>
+#endif
 __END_DECLS
 
 #endif /* _STRING_H_ */

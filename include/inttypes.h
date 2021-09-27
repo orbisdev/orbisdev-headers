@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $FreeBSD: release/9.0.0/include/inttypes.h 205954 2010-03-31 02:12:24Z jmallett $
+ * $FreeBSD: releng/10.3/include/inttypes.h 264496 2014-04-15 09:41:52Z tijl $
  */
 
 #ifndef _INTTYPES_H_
@@ -34,7 +34,7 @@
 
 #ifndef	__cplusplus
 #ifndef _WCHAR_T_DECLARED
-typedef	__wchar_t	wchar_t;
+typedef	___wchar_t	wchar_t;
 #define	_WCHAR_T_DECLARED
 #endif
 #endif
@@ -45,6 +45,9 @@ typedef struct {
 } imaxdiv_t;
 
 __BEGIN_DECLS
+#ifdef _XLOCALE_H_
+#include <xlocale/_inttypes.h>
+#endif
 intmax_t	imaxabs(intmax_t) __pure2;
 imaxdiv_t	imaxdiv(intmax_t, intmax_t) __pure2;
 

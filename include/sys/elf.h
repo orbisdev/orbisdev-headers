@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $FreeBSD: release/9.0.0/sys/sys/elf.h 174043 2007-11-28 21:54:46Z jb $
+ * $FreeBSD: releng/10.3/sys/sys/elf.h 174043 2007-11-28 21:54:46Z jb $
  */
 
 /*

@@ -37,7 +37,7 @@
  * SUCH DAMAGE.
  *
  *	@(#)ipc.h	8.4 (Berkeley) 2/19/95
- * $FreeBSD: release/9.0.0/sys/sys/ipc.h 194910 2009-06-24 21:10:52Z jhb $
+ * $FreeBSD: releng/10.3/sys/sys/ipc.h 241837 2012-10-22 02:59:55Z eadler $
  */
 
 /*
@@ -70,7 +70,8 @@ typedef	__uid_t		uid_t;
 #endif
 
 #if defined(COMPAT_FREEBSD4) || defined(COMPAT_FREEBSD5) || \
-    defined(COMPAT_FREEBSD6) || defined(COMPAT_FREEBSD7)
+    defined(COMPAT_FREEBSD6) || defined(COMPAT_FREEBSD7) || \
+    defined(COMPAT_43)
 struct ipc_perm_old {
 	unsigned short	cuid;	/* creator user id */
 	unsigned short	cgid;	/* creator group id */

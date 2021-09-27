@@ -55,7 +55,7 @@
  * any improvements or extensions that they make and grant Carnegie the
  * rights to redistribute these changes.
  *
- * $FreeBSD: release/9.0.0/sys/vm/vm.h 216128 2010-12-02 17:37:16Z trasz $
+ * $FreeBSD: releng/10.3/sys/vm/vm.h 253604 2013-07-24 09:45:31Z avg $
  */
 
 #ifndef VM_H
@@ -83,7 +83,7 @@ typedef u_char vm_prot_t;	/* protection codes */
 #define	VM_PROT_DEFAULT		VM_PROT_ALL
 
 enum obj_type { OBJT_DEFAULT, OBJT_SWAP, OBJT_VNODE, OBJT_DEVICE, OBJT_PHYS,
-		OBJT_DEAD, OBJT_SG };
+		OBJT_DEAD, OBJT_SG, OBJT_MGTDEVICE };
 typedef u_char objtype_t;
 
 union vm_map_object;
@@ -134,12 +134,12 @@ struct kva_md_info {
 	vm_offset_t	buffer_eva;
 	vm_offset_t	clean_sva;
 	vm_offset_t	clean_eva;
-	vm_offset_t	pager_sva;
-	vm_offset_t	pager_eva;
 };
 
 extern struct kva_md_info	kmi;
 extern void vm_ksubmap_init(struct kva_md_info *);
+
+extern int old_mlock;
 
 struct ucred;
 int swap_reserve(vm_ooffset_t incr);
@@ -147,6 +147,7 @@ int swap_reserve_by_cred(vm_ooffset_t incr, struct ucred *cred);
 void swap_reserve_force(vm_ooffset_t incr);
 void swap_release(vm_ooffset_t decr);
 void swap_release_by_cred(vm_ooffset_t decr, struct ucred *cred);
+void swapper(void);
 
 #endif				/* VM_H */
 

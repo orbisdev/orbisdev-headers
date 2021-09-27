@@ -27,7 +27,7 @@
  * SUCH DAMAGE.
  *
  *	@(#)resource.h	8.4 (Berkeley) 1/9/95
- * $FreeBSD: release/9.0.0/sys/sys/resource.h 210220 2010-07-18 11:13:36Z trasz $
+ * $FreeBSD: releng/10.3/sys/sys/resource.h 242958 2012-11-13 12:52:31Z kib $
  */
 
 #ifndef _SYS_RESOURCE_H_
@@ -79,6 +79,13 @@ struct rusage {
 #define	ru_last		ru_nivcsw
 };
 
+#if __BSD_VISIBLE
+struct __wrusage {
+	struct rusage	wru_self;
+	struct rusage	wru_children;
+};
+#endif
+
 /*
  * Resource limits
  */
@@ -108,7 +115,7 @@ struct rusage {
  */
 
 #ifdef _RLIMIT_IDENT
-static char *rlimit_ident[RLIM_NLIMITS] = {
+static const char *rlimit_ident[RLIM_NLIMITS] = {
 	"cpu",
 	"fsize",
 	"data",

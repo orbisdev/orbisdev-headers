@@ -27,7 +27,7 @@
  * SUCH DAMAGE.
  *
  *	from: @(#)proc.h	7.1 (Berkeley) 5/15/91
- * $FreeBSD: release/9.0.0/sys/amd64/include/proc.h 208453 2010-05-23 18:32:02Z kib $
+ * $FreeBSD: releng/10.3/sys/amd64/include/proc.h 233291 2012-03-22 04:52:51Z alc $
  */
 
 #ifndef _MACHINE_PROC_H_
@@ -46,6 +46,7 @@ struct proc_ldt {
 struct mdthread {
 	int	md_spinlock_count;	/* (k) */
 	register_t md_saved_flags;	/* (k) */
+	register_t md_spurflt_addr;	/* (k) Spurious page fault address. */
 };
 
 struct mdproc {
@@ -85,8 +86,6 @@ struct syscall_args {
 	register_t args[8];
 	int narg;
 };
-#define	HAVE_SYSCALL_ARGS_DEF 1
-
 #endif  /* _KERNEL */
 
 #endif /* !_MACHINE_PROC_H_ */

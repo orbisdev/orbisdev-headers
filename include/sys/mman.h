@@ -27,7 +27,7 @@
  * SUCH DAMAGE.
  *
  *	@(#)mman.h	8.2 (Berkeley) 1/9/95
- * $FreeBSD: release/9.0.0/sys/sys/mman.h 211937 2010-08-28 16:57:07Z alc $
+ * $FreeBSD: releng/10.3/sys/sys/mman.h 271399 2014-09-10 15:45:18Z jhb $
  */
 
 #ifndef _SYS_MMAN_H_
@@ -89,8 +89,23 @@
 /*
  * Extended flags
  */
+#define	MAP_EXCL	 0x00004000 /* for MAP_FIXED, fail if address is used */
 #define	MAP_NOCORE	 0x00020000 /* dont include these pages in a coredump */
 #define	MAP_PREFAULT_READ 0x00040000 /* prefault mapping for reading */
+#ifdef __LP64__
+#define	MAP_32BIT	 0x00080000 /* map in the low 2GB of address space */
+#endif
+
+/*
+ * Request specific alignment (n == log2 of the desired alignment).
+ *
+ * MAP_ALIGNED_SUPER requests optimal superpage alignment, but does
+ * not enforce a specific alignment.
+ */
+#define	MAP_ALIGNED(n)	 ((n) << MAP_ALIGNMENT_SHIFT)
+#define	MAP_ALIGNMENT_SHIFT	24
+#define	MAP_ALIGNMENT_MASK	MAP_ALIGNED(0xff)
+#define	MAP_ALIGNED_SUPER	MAP_ALIGNED(1) /* align on a superpage */
 #endif /* __BSD_VISIBLE */
 
 #if __POSIX_VISIBLE >= 199309
@@ -178,8 +193,14 @@ typedef	__size_t	size_t;
 #define	_SIZE_T_DECLARED
 #endif
 
-#ifdef _KERNEL
+#if defined(_KERNEL) || defined(_WANT_FILE)
+#include <sys/lock.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/rangelock.h>
 #include <vm/vm.h>
+
+struct file;
 
 struct shmfd {
 	size_t		shm_size;
@@ -188,6 +209,7 @@ struct shmfd {
 	uid_t		shm_uid;
 	gid_t		shm_gid;
 	mode_t		shm_mode;
+	int		shm_kmappings;
 
 	/*
 	 * Values maintained solely to make this a better-behaved file
@@ -197,12 +219,22 @@ struct shmfd {
 	struct timespec	shm_mtime;
 	struct timespec	shm_ctime;
 	struct timespec	shm_birthtime;
+	ino_t		shm_ino;
 
 	struct label	*shm_label;		/* MAC label */
-};
+	const char	*shm_path;
 
+	struct rangelock shm_rl;
+	struct mtx	shm_mtx;
+};
+#endif
+
+#ifdef _KERNEL
 int	shm_mmap(struct shmfd *shmfd, vm_size_t objsize, vm_ooffset_t foff,
 	    vm_object_t *obj);
+int	shm_map(struct file *fp, size_t size, off_t offset, void **memp);
+int	shm_unmap(struct file *fp, void *mem, size_t size);
+void	shm_path(struct shmfd *shmfd, char *path, size_t size);
 
 #else /* !_KERNEL */
 

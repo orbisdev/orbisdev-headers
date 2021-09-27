@@ -32,7 +32,7 @@
  * SUCH DAMAGE.
  *
  *	@(#)types.h	8.6 (Berkeley) 2/19/95
- * $FreeBSD: release/9.0.0/sys/sys/types.h 223710 2011-07-01 12:13:48Z jonathan $
+ * $FreeBSD: releng/10.3/sys/sys/types.h 289107 2015-10-10 05:50:42Z kib $
  */
 
 #ifndef _SYS_TYPES_H_
@@ -72,8 +72,7 @@ typedef	__int64_t	quad_t;
 typedef	quad_t *	qaddr_t;
 
 typedef	char *		caddr_t;	/* core address */
-typedef	__const char *	c_caddr_t;	/* core address, pointer to const */
-typedef	__volatile char *v_caddr_t;	/* core address, pointer to volatile */
+typedef	const char *	c_caddr_t;	/* core address, pointer to const */
 
 #ifndef _BLKSIZE_T_DECLARED
 typedef	__blksize_t	blksize_t;
@@ -88,8 +87,6 @@ typedef	__cpusetid_t	cpusetid_t;
 typedef	__blkcnt_t	blkcnt_t;
 #define	_BLKCNT_T_DECLARED
 #endif
-
-typedef	__cap_rights_t	cap_rights_t;
 
 #ifndef _CLOCK_T_DECLARED
 typedef	__clock_t	clock_t;
@@ -189,6 +186,8 @@ typedef	__rlim_t	rlim_t;		/* resource limit */
 #define	_RLIM_T_DECLARED
 #endif
 
+typedef	__int64_t	sbintime_t;
+
 typedef	__segsz_t	segsz_t;	/* segment size (in pages) */
 
 #ifndef _SIZE_T_DECLARED
@@ -233,6 +232,13 @@ typedef	__useconds_t	useconds_t;	/* microseconds (unsigned) */
 #define	_USECONDS_T_DECLARED
 #endif
 
+#ifndef _CAP_RIGHTS_T_DECLARED
+#define	_CAP_RIGHTS_T_DECLARED
+struct cap_rights;
+
+typedef	struct cap_rights	cap_rights_t;
+#endif
+
 typedef	__vm_offset_t	vm_offset_t;
 typedef	__vm_ooffset_t	vm_ooffset_t;
 typedef	__vm_paddr_t	vm_paddr_t;
@@ -261,6 +267,16 @@ typedef	__uint64_t	uoff_t;
 typedef	char		vm_memattr_t;	/* memory attribute codes */
 typedef	struct vm_page	*vm_page_t;
 
+#if !defined(__bool_true_false_are_defined) && !defined(__cplusplus)
+#define	__bool_true_false_are_defined	1
+#define	false	0
+#define	true	1
+#if __STDC_VERSION__ < 199901L && __GNUC__ < 3 && !defined(__INTEL_COMPILER)
+typedef	int	_Bool;
+#endif
+typedef	_Bool	bool;
+#endif /* !__bool_true_false_are_defined && !__cplusplus */
+
 #define offsetof(type, field) __offsetof(type, field)
 
 #endif /* !_KERNEL */
@@ -269,6 +285,69 @@ typedef	struct vm_page	*vm_page_t;
  * The following are all things that really shouldn't exist in this header,
  * since its purpose is to provide typedefs, not miscellaneous doodads.
  */
+
+#ifdef __POPCNT__
+#define	__bitcount64(x)	__builtin_popcountll((__uint64_t)(x))
+#define	__bitcount32(x)	__builtin_popcount((__uint32_t)(x))
+#define	__bitcount16(x)	__builtin_popcount((__uint16_t)(x))
+#define	__bitcountl(x)	__builtin_popcountl((unsigned long)(x))
+#define	__bitcount(x)	__builtin_popcount((unsigned int)(x))
+#else
+/*
+ * Population count algorithm using SWAR approach
+ * - "SIMD Within A Register".
+ */
+static __inline __uint16_t
+__bitcount16(__uint16_t _x)
+{
+
+	_x = (_x & 0x5555) + ((_x & 0xaaaa) >> 1);
+	_x = (_x & 0x3333) + ((_x & 0xcccc) >> 2);
+	_x = (_x + (_x >> 4)) & 0x0f0f;
+	_x = (_x + (_x >> 8)) & 0x00ff;
+	return (_x);
+}
+
+static __inline __uint32_t
+__bitcount32(__uint32_t _x)
+{
+
+	_x = (_x & 0x55555555) + ((_x & 0xaaaaaaaa) >> 1);
+	_x = (_x & 0x33333333) + ((_x & 0xcccccccc) >> 2);
+	_x = (_x + (_x >> 4)) & 0x0f0f0f0f;
+	_x = (_x + (_x >> 8));
+	_x = (_x + (_x >> 16)) & 0x000000ff;
+	return (_x);
+}
+
+#ifdef __LP64__
+static __inline __uint64_t
+__bitcount64(__uint64_t _x)
+{
+
+	_x = (_x & 0x5555555555555555) + ((_x & 0xaaaaaaaaaaaaaaaa) >> 1);
+	_x = (_x & 0x3333333333333333) + ((_x & 0xcccccccccccccccc) >> 2);
+	_x = (_x + (_x >> 4)) & 0x0f0f0f0f0f0f0f0f;
+	_x = (_x + (_x >> 8));
+	_x = (_x + (_x >> 16));
+	_x = (_x + (_x >> 32)) & 0x000000ff;
+	return (_x);
+}
+
+#define	__bitcountl(x)	__bitcount64((unsigned long)(x))
+#else
+static __inline __uint64_t
+__bitcount64(__uint64_t _x)
+{
+
+	return (__bitcount32(_x >> 32) + __bitcount32(_x));
+}
+
+#define	__bitcountl(x)	__bitcount32((unsigned long)(x))
+#endif
+#define	__bitcount(x)	__bitcount32((unsigned int)(x))
+#endif
+
 #if __BSD_VISIBLE
 
 #include <sys/select.h>

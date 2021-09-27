@@ -28,7 +28,7 @@
  *
  *	@(#)socketvar.h	8.3 (Berkeley) 2/19/95
  *
- * $FreeBSD: release/9.0.0/sys/sys/socketvar.h 215178 2010-11-12 13:02:26Z luigi $
+ * $FreeBSD: releng/10.3/sys/sys/socketvar.h 287329 2015-08-31 18:58:53Z delphij $
  */
 
 #ifndef _SYS_SOCKETVAR_H_
@@ -44,8 +44,6 @@
 #ifdef _KERNEL
 #include <sys/sockopt.h>
 #endif
-
-#include <ps4/change.h>
 
 struct vnet;
 
@@ -72,13 +70,13 @@ struct socket;
  */
 struct socket {
 	int	so_count;		/* (b) reference count */
-	/*short*/Ps4Integer32	so_type;		/* (a) generic type, see socket.h */
-	/*short*/Ps4Integer32	so_options;		/* from socket call, see socket.h */
-	/*short*/Ps4Integer32	so_linger;		/* time to linger while closing */
-	/*short*/Ps4Integer32	so_state;		/* (b) internal state flags SS_* */
+	short	so_type;		/* (a) generic type, see socket.h */
+	short	so_options;		/* from socket call, see socket.h */
+	short	so_linger;		/* time to linger while closing */
+	short	so_state;		/* (b) internal state flags SS_* */
 	int	so_qstate;		/* (e) internal state flags SQ_* */
 	void	*so_pcb;		/* protocol control block */
-	struct	vnet *so_vnet;		/* network stack instance */
+	struct	vnet *so_vnet;		/* (a) network stack instance */
 	struct	protosw *so_proto;	/* (a) protocol handle */
 /*
  * Variables for connection queuing.
@@ -164,10 +162,10 @@ extern struct mtx accept_mtx;
 struct xsocket {
 	size_t	xso_len;	/* length of this structure */
 	struct	socket *xso_so;	/* makes a convenient handle sometimes */
-	/*short*/Ps4Integer32	so_type;
-	/*short*/Ps4Integer32	so_options;
-	/*short*/Ps4Integer32	so_linger;
-	/*short*/Ps4Integer32	so_state;
+	short	so_type;
+	short	so_options;
+	short	so_linger;
+	short	so_state;
 	caddr_t	so_pcb;		/* another convenient handle */
 	int	xso_protocol;
 	int	xso_family;
@@ -296,7 +294,6 @@ MALLOC_DECLARE(M_SONAME);
 
 extern int	maxsockets;
 extern u_long	sb_max;
-extern struct uma_zone *socket_zone;
 extern so_gen_t so_gencnt;
 
 struct mbuf;
@@ -321,10 +318,13 @@ void	soabort(struct socket *so);
 int	soaccept(struct socket *so, struct sockaddr **nam);
 int	socheckuid(struct socket *so, uid_t uid);
 int	sobind(struct socket *so, struct sockaddr *nam, struct thread *td);
+int	sobindat(int fd, struct socket *so, struct sockaddr *nam,
+	    struct thread *td);
 int	soclose(struct socket *so);
 int	soconnect(struct socket *so, struct sockaddr *nam, struct thread *td);
+int	soconnectat(int fd, struct socket *so, struct sockaddr *nam,
+	    struct thread *td);
 int	soconnect2(struct socket *so1, struct socket *so2);
-int	socow_setup(struct mbuf *m0, struct uio *uio);
 int	socreate(int dom, struct socket **aso, int type, int proto,
 	    struct ucred *cred, struct thread *td);
 int	sodisconnect(struct socket *so);

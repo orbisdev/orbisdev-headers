@@ -32,7 +32,7 @@
  * SUCH DAMAGE.
  *
  *	@(#)setjmp.h	8.2 (Berkeley) 1/21/94
- * $FreeBSD: release/9.0.0/include/setjmp.h 203964 2010-02-16 19:39:50Z imp $
+ * $FreeBSD: releng/10.3/include/setjmp.h 234785 2012-04-29 11:04:31Z dim $
  */
 
 #ifndef _SETJMP_H_
@@ -46,16 +46,16 @@
 __BEGIN_DECLS
 #if __BSD_VISIBLE || __XSI_VISIBLE >= 600
 void	_longjmp(jmp_buf, int) __dead2;
-int	_setjmp(jmp_buf);
+int	_setjmp(jmp_buf) __returns_twice;
 #endif
 void	longjmp(jmp_buf, int) __dead2;
 #if __BSD_VISIBLE
 void	longjmperror(void);
 #endif
-int	setjmp(jmp_buf);
+int	setjmp(jmp_buf) __returns_twice;
 #if __BSD_VISIBLE || __POSIX_VISIBLE || __XSI_VISIBLE
 void	siglongjmp(sigjmp_buf, int) __dead2;
-int	sigsetjmp(sigjmp_buf, int);
+int	sigsetjmp(sigjmp_buf, int) __returns_twice;
 #endif
 __END_DECLS
 

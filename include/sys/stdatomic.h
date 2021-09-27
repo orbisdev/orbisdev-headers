@@ -24,7 +24,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $FreeBSD$
+ * $FreeBSD: releng/10.3/sys/sys/stdatomic.h 264496 2014-04-15 09:41:52Z tijl $
  */
 
 #ifndef _STDATOMIC_H_
@@ -32,8 +32,6 @@
 
 #include <sys/cdefs.h>
 #include <sys/_types.h>
-
-#include <ps4/change.h>
 
 #if __has_extension(c_atomic) || __has_extension(cxx_atomic)
 #define	__CLANG_ATOMICS

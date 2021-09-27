@@ -56,7 +56,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * $FreeBSD: release/9.0.0/sys/sys/sched.h 216791 2010-12-29 09:26:46Z davidxu $
+ * $FreeBSD: releng/10.3/sys/sys/sched.h 253604 2013-07-24 09:45:31Z avg $
  */
 
 #ifndef _SCHED_H_
@@ -103,6 +103,11 @@ void	sched_user_prio(struct thread *td, u_char prio);
 void	sched_userret(struct thread *td);
 void	sched_wakeup(struct thread *td);
 void	sched_preempt(struct thread *td);
+#ifdef	RACCT
+#ifdef	SCHED_4BSD
+fixpt_t	sched_pctcpu_delta(struct thread *td);
+#endif
+#endif
 
 /*
  * Threads are moved on and off of run queues
@@ -138,16 +143,21 @@ int	sched_sizeof_thread(void);
  * functions.
  */
 char	*sched_tdname(struct thread *td);
+#ifdef KTR
+void	sched_clear_tdname(struct thread *td);
+#endif
 
 static __inline void
 sched_pin(void)
 {
 	curthread->td_pinned++;
+	__compiler_membar();
 }
 
 static __inline void
 sched_unpin(void)
 {
+	__compiler_membar();
 	curthread->td_pinned--;
 }
 
@@ -172,7 +182,7 @@ static void name ## _add_proc(void *dummy __unused)			\
 	    #name, CTLTYPE_LONG|CTLFLAG_RD|CTLFLAG_MPSAFE,		\
 	    ptr, 0, sysctl_dpcpu_long, "LU", descr);			\
 }									\
-SYSINIT(name, SI_SUB_RUN_SCHEDULER, SI_ORDER_MIDDLE, name ## _add_proc, NULL);
+SYSINIT(name, SI_SUB_LAST, SI_ORDER_MIDDLE, name ## _add_proc, NULL);
 
 #define	SCHED_STAT_DEFINE(name, descr)					\
     DPCPU_DEFINE(unsigned long, name);					\
