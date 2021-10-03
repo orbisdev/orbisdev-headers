@@ -255,6 +255,8 @@
 #define	__LONG_LONG_SUPPORTED
 #endif
 
+#define	__LONG_LONG_SUPPORTED
+
 /*
  * GCC 2.95 provides `__restrict' as an extension to C90 to support the
  * C99-specific `restrict' type qualifier.  We happen to use `__restrict' as
