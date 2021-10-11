@@ -27,7 +27,7 @@ int sceNetAccept(int, struct sockaddr *, unsigned int *);
 int sceNetBind(int, struct sockaddr *, int);
 int sceNetConnect(int, struct sockaddr *, int);
 int sceNetGetsockname(int, struct sockaddr *, unsigned int *);
-int sceNetGetsockopt(int s, int level, int optname, void *restrict optval, socklen_t *restrict optlen);
+int sceNetGetsockopt(int s, int level, int optname, void * optval, socklen_t * optlen);
 int sceNetInetPton(int af, const char *src, void *dst);
 int sceNetListen(int, int);
 int sceNetRecv(int, void *, size_t, int);
