@@ -93,6 +93,14 @@ typedef int64_t SceKernelEqueue;
 typedef struct kevent SceKernelEvent;
 
 /* useless C / POSIX wrappers */
+int sceKernelStat(const char *path, void * buf);
+int sceKernelOpen(const char *path, int flags, int mode);
+int sceKernelRead(int fd, void *buf, size_t nbyte);
+int sceKernelWrite(int fd, void *buf, size_t nbyte);
+int sceKernelLseek(int fd, off_t offset, int whence);
+int sceKernelClose(int fd);
+int sceKernelMkdir(const char *path, mode_t mode);
+int sceKernelChmod(const char *path, mode_t mode);
 int sceKernelGetCurrentCpu(void);
 int sceKernelGettimeofday(SceKernelTimeval *tp);
 uint64_t sceKernelGetProcessTime();
@@ -145,9 +153,10 @@ int sceKernelLoadStartModule(const char *name, size_t argc, const void *argv, ui
 int sceKernelDlsym(SceKernelModule handle, const char *symbol, void **address);
 int sceKernelGetModuleList(SceKernelModule *array, size_t size, size_t *available);
 int sceKernelGetModuleInfo(SceKernelModule handle, SceKernelModuleInfo *info);
+int sceKernelGetModuleInfoByName(const char* name, SceKernelModuleInfo* info);
 int sceKernelStopUnloadModule(SceKernelModule handle, size_t argc, const void *argv, uint32_t flags, void *, int *result);
 
-
+int sceKernelSync();
 const char *sceKernelGetFsSandboxRandomWord();
 
 int sceKernelJitCreateSharedMemory(int flags, size_t size, int protection, int *destinationHandle);
