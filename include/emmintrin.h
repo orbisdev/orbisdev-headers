@@ -1,22 +1,8 @@
 /*===---- emmintrin.h - SSE2 intrinsics ------------------------------------===
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
+ * Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+ * See https://llvm.org/LICENSE.txt for license information.
+ * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  *
  *===-----------------------------------------------------------------------===
  */
@@ -24,10 +10,17 @@
 #ifndef __EMMINTRIN_H
 #define __EMMINTRIN_H
 
+#if !defined(__i386__) && !defined(__x86_64__)
+#error "This header is only meant to be used on x86 and x64 architecture"
+#endif
+
 #include <xmmintrin.h>
 
-typedef double __m128d __attribute__((__vector_size__(16)));
-typedef long long __m128i __attribute__((__vector_size__(16)));
+typedef double __m128d __attribute__((__vector_size__(16), __aligned__(16)));
+typedef long long __m128i __attribute__((__vector_size__(16), __aligned__(16)));
+
+typedef double __m128d_u __attribute__((__vector_size__(16), __aligned__(1)));
+typedef long long __m128i_u __attribute__((__vector_size__(16), __aligned__(1)));
 
 /* Type defines.  */
 typedef double __v2df __attribute__ ((__vector_size__ (16)));
@@ -45,8 +38,8 @@ typedef unsigned char __v16qu __attribute__((__vector_size__(16)));
 typedef signed char __v16qs __attribute__((__vector_size__(16)));
 
 /* Define the default attributes for the functions in this file. */
-#define __DEFAULT_FN_ATTRS __attribute__((__always_inline__, __nodebug__, __target__("sse2")))
-#define __DEFAULT_FN_ATTRS_MMX __attribute__((__always_inline__, __nodebug__, __target__("mmx,sse2")))
+#define __DEFAULT_FN_ATTRS __attribute__((__always_inline__, __nodebug__, __target__("sse2"), __min_vector_width__(128)))
+#define __DEFAULT_FN_ATTRS_MMX __attribute__((__always_inline__, __nodebug__, __target__("mmx,sse2"), __min_vector_width__(64)))
 
 /// Adds lower double-precision values in both operands and returns the
 ///    sum in the lower 64 bits of the result. The upper 64 bits of the result
@@ -1589,7 +1582,7 @@ _mm_cvtsd_f64(__m128d __a)
 static __inline__ __m128d __DEFAULT_FN_ATTRS
 _mm_load_pd(double const *__dp)
 {
-  return *(__m128d*)__dp;
+  return *(const __m128d*)__dp;
 }
 
 /// Loads a double-precision floating-point value from a specified memory
@@ -1610,7 +1603,7 @@ _mm_load1_pd(double const *__dp)
   struct __mm_load1_pd_struct {
     double __u;
   } __attribute__((__packed__, __may_alias__));
-  double __u = ((struct __mm_load1_pd_struct*)__dp)->__u;
+  double __u = ((const struct __mm_load1_pd_struct*)__dp)->__u;
   return __extension__ (__m128d){ __u, __u };
 }
 
@@ -1633,7 +1626,7 @@ _mm_load1_pd(double const *__dp)
 static __inline__ __m128d __DEFAULT_FN_ATTRS
 _mm_loadr_pd(double const *__dp)
 {
-  __m128d __u = *(__m128d*)__dp;
+  __m128d __u = *(const __m128d*)__dp;
   return __builtin_shufflevector((__v2df)__u, (__v2df)__u, 1, 0);
 }
 
@@ -1652,9 +1645,9 @@ static __inline__ __m128d __DEFAULT_FN_ATTRS
 _mm_loadu_pd(double const *__dp)
 {
   struct __loadu_pd {
-    __m128d __v;
+    __m128d_u __v;
   } __attribute__((__packed__, __may_alias__));
-  return ((struct __loadu_pd*)__dp)->__v;
+  return ((const struct __loadu_pd*)__dp)->__v;
 }
 
 /// Loads a 64-bit integer value to the low element of a 128-bit integer
@@ -1674,8 +1667,50 @@ _mm_loadu_si64(void const *__a)
   struct __loadu_si64 {
     long long __v;
   } __attribute__((__packed__, __may_alias__));
-  long long __u = ((struct __loadu_si64*)__a)->__v;
-  return __extension__ (__m128i)(__v2di){__u, 0L};
+  long long __u = ((const struct __loadu_si64*)__a)->__v;
+  return __extension__ (__m128i)(__v2di){__u, 0LL};
+}
+
+/// Loads a 32-bit integer value to the low element of a 128-bit integer
+///    vector and clears the upper element.
+///
+/// \headerfile <x86intrin.h>
+///
+/// This intrinsic corresponds to the <c> VMOVD / MOVD </c> instruction.
+///
+/// \param __a
+///    A pointer to a 32-bit memory location. The address of the memory
+///    location does not have to be aligned.
+/// \returns A 128-bit vector of [4 x i32] containing the loaded value.
+static __inline__ __m128i __DEFAULT_FN_ATTRS
+_mm_loadu_si32(void const *__a)
+{
+  struct __loadu_si32 {
+    int __v;
+  } __attribute__((__packed__, __may_alias__));
+  int __u = ((const struct __loadu_si32*)__a)->__v;
+  return __extension__ (__m128i)(__v4si){__u, 0, 0, 0};
+}
+
+/// Loads a 16-bit integer value to the low element of a 128-bit integer
+///    vector and clears the upper element.
+///
+/// \headerfile <x86intrin.h>
+///
+/// This intrinsic does not correspond to a specific instruction.
+///
+/// \param __a
+///    A pointer to a 16-bit memory location. The address of the memory
+///    location does not have to be aligned.
+/// \returns A 128-bit vector of [8 x i16] containing the loaded value.
+static __inline__ __m128i __DEFAULT_FN_ATTRS
+_mm_loadu_si16(void const *__a)
+{
+  struct __loadu_si16 {
+    short __v;
+  } __attribute__((__packed__, __may_alias__));
+  short __u = ((const struct __loadu_si16*)__a)->__v;
+  return __extension__ (__m128i)(__v8hi){__u, 0, 0, 0, 0, 0, 0, 0};
 }
 
 /// Loads a 64-bit double-precision value to the low element of a
@@ -1695,7 +1730,7 @@ _mm_load_sd(double const *__dp)
   struct __mm_load_sd_struct {
     double __u;
   } __attribute__((__packed__, __may_alias__));
-  double __u = ((struct __mm_load_sd_struct*)__dp)->__u;
+  double __u = ((const struct __mm_load_sd_struct*)__dp)->__u;
   return __extension__ (__m128d){ __u, 0 };
 }
 
@@ -1722,7 +1757,7 @@ _mm_loadh_pd(__m128d __a, double const *__dp)
   struct __mm_loadh_pd_struct {
     double __u;
   } __attribute__((__packed__, __may_alias__));
-  double __u = ((struct __mm_loadh_pd_struct*)__dp)->__u;
+  double __u = ((const struct __mm_loadh_pd_struct*)__dp)->__u;
   return __extension__ (__m128d){ __a[0], __u };
 }
 
@@ -1749,7 +1784,7 @@ _mm_loadl_pd(__m128d __a, double const *__dp)
   struct __mm_loadl_pd_struct {
     double __u;
   } __attribute__((__packed__, __may_alias__));
-  double __u = ((struct __mm_loadl_pd_struct*)__dp)->__u;
+  double __u = ((const struct __mm_loadl_pd_struct*)__dp)->__u;
   return __extension__ (__m128d){ __u, __a[1] };
 }
 
@@ -1900,7 +1935,8 @@ _mm_setzero_pd(void)
 static __inline__ __m128d __DEFAULT_FN_ATTRS
 _mm_move_sd(__m128d __a, __m128d __b)
 {
-  return __extension__ (__m128d){ __b[0], __a[1] };
+  __a[0] = __b[0];
+  return __a;
 }
 
 /// Stores the lower 64 bits of a 128-bit vector of [2 x double] to a
@@ -1999,7 +2035,7 @@ static __inline__ void __DEFAULT_FN_ATTRS
 _mm_storeu_pd(double *__dp, __m128d __a)
 {
   struct __storeu_pd {
-    __m128d __v;
+    __m128d_u __v;
   } __attribute__((__packed__, __may_alias__));
   ((struct __storeu_pd*)__dp)->__v = __a;
 }
@@ -2256,7 +2292,7 @@ _mm_adds_epu16(__m128i __a, __m128i __b)
   return (__m128i)__builtin_ia32_paddusw128((__v8hi)__a, (__v8hi)__b);
 }
 
-/// Computes the rounded avarages of corresponding elements of two
+/// Computes the rounded averages of corresponding elements of two
 ///    128-bit unsigned [16 x i8] vectors, saving each result in the
 ///    corresponding element of a 128-bit result vector of [16 x i8].
 ///
@@ -2276,7 +2312,7 @@ _mm_avg_epu8(__m128i __a, __m128i __b)
   return (__m128i)__builtin_ia32_pavgb128((__v16qi)__a, (__v16qi)__b);
 }
 
-/// Computes the rounded avarages of corresponding elements of two
+/// Computes the rounded averages of corresponding elements of two
 ///    128-bit unsigned [8 x i16] vectors, saving each result in the
 ///    corresponding element of a 128-bit result vector of [8 x i16].
 ///
@@ -2339,7 +2375,7 @@ _mm_madd_epi16(__m128i __a, __m128i __b)
 static __inline__ __m128i __DEFAULT_FN_ATTRS
 _mm_max_epi16(__m128i __a, __m128i __b)
 {
-  return (__m128i)__builtin_ia32_pmaxsw128((__v8hi)__a, (__v8hi)__b);
+  return (__m128i)__builtin_elementwise_max((__v8hi)__a, (__v8hi)__b);
 }
 
 /// Compares corresponding elements of two 128-bit unsigned [16 x i8]
@@ -2359,7 +2395,7 @@ _mm_max_epi16(__m128i __a, __m128i __b)
 static __inline__ __m128i __DEFAULT_FN_ATTRS
 _mm_max_epu8(__m128i __a, __m128i __b)
 {
-  return (__m128i)__builtin_ia32_pmaxub128((__v16qi)__a, (__v16qi)__b);
+  return (__m128i)__builtin_elementwise_max((__v16qu)__a, (__v16qu)__b);
 }
 
 /// Compares corresponding elements of two 128-bit signed [8 x i16]
@@ -2379,7 +2415,7 @@ _mm_max_epu8(__m128i __a, __m128i __b)
 static __inline__ __m128i __DEFAULT_FN_ATTRS
 _mm_min_epi16(__m128i __a, __m128i __b)
 {
-  return (__m128i)__builtin_ia32_pminsw128((__v8hi)__a, (__v8hi)__b);
+  return (__m128i)__builtin_elementwise_min((__v8hi)__a, (__v8hi)__b);
 }
 
 /// Compares corresponding elements of two 128-bit unsigned [16 x i8]
@@ -2399,7 +2435,7 @@ _mm_min_epi16(__m128i __a, __m128i __b)
 static __inline__ __m128i __DEFAULT_FN_ATTRS
 _mm_min_epu8(__m128i __a, __m128i __b)
 {
-  return (__m128i)__builtin_ia32_pminub128((__v16qi)__a, (__v16qi)__b);
+  return (__m128i)__builtin_elementwise_min((__v16qu)__a, (__v16qu)__b);
 }
 
 /// Multiplies the corresponding elements of two signed [8 x i16]
@@ -2785,29 +2821,11 @@ _mm_xor_si128(__m128i __a, __m128i __b)
 ///    An immediate value specifying the number of bytes to left-shift operand
 ///    \a a.
 /// \returns A 128-bit integer vector containing the left-shifted value.
-#define _mm_slli_si128(a, imm) __extension__ ({                              \
-  (__m128i)__builtin_shufflevector(                                          \
-                                 (__v16qi)_mm_setzero_si128(),               \
-                                 (__v16qi)(__m128i)(a),                      \
-                                 ((char)(imm)&0xF0) ?  0 : 16 - (char)(imm), \
-                                 ((char)(imm)&0xF0) ?  1 : 17 - (char)(imm), \
-                                 ((char)(imm)&0xF0) ?  2 : 18 - (char)(imm), \
-                                 ((char)(imm)&0xF0) ?  3 : 19 - (char)(imm), \
-                                 ((char)(imm)&0xF0) ?  4 : 20 - (char)(imm), \
-                                 ((char)(imm)&0xF0) ?  5 : 21 - (char)(imm), \
-                                 ((char)(imm)&0xF0) ?  6 : 22 - (char)(imm), \
-                                 ((char)(imm)&0xF0) ?  7 : 23 - (char)(imm), \
-                                 ((char)(imm)&0xF0) ?  8 : 24 - (char)(imm), \
-                                 ((char)(imm)&0xF0) ?  9 : 25 - (char)(imm), \
-                                 ((char)(imm)&0xF0) ? 10 : 26 - (char)(imm), \
-                                 ((char)(imm)&0xF0) ? 11 : 27 - (char)(imm), \
-                                 ((char)(imm)&0xF0) ? 12 : 28 - (char)(imm), \
-                                 ((char)(imm)&0xF0) ? 13 : 29 - (char)(imm), \
-                                 ((char)(imm)&0xF0) ? 14 : 30 - (char)(imm), \
-                                 ((char)(imm)&0xF0) ? 15 : 31 - (char)(imm)); })
+#define _mm_slli_si128(a, imm) \
+  ((__m128i)__builtin_ia32_pslldqi128_byteshift((__v2di)(__m128i)(a), (int)(imm)))
 
 #define _mm_bslli_si128(a, imm) \
-  (__m128i)__builtin_ia32_pslldqi128((__v2di)(__m128i)(a), (int)(imm) * 8)
+  ((__m128i)__builtin_ia32_pslldqi128_byteshift((__v2di)(__m128i)(a), (int)(imm)))
 
 /// Left-shifts each 16-bit value in the 128-bit integer vector operand
 ///    by the specified number of bits. Low-order bits are cleared.
@@ -3020,29 +3038,11 @@ _mm_sra_epi32(__m128i __a, __m128i __count)
 ///    An immediate value specifying the number of bytes to right-shift operand
 ///    \a a.
 /// \returns A 128-bit integer vector containing the right-shifted value.
-#define _mm_srli_si128(a, imm) __extension__ ({                              \
-  (__m128i)__builtin_shufflevector(                                          \
-                                 (__v16qi)(__m128i)(a),                      \
-                                 (__v16qi)_mm_setzero_si128(),               \
-                                 ((char)(imm)&0xF0) ? 16 : (char)(imm) + 0,  \
-                                 ((char)(imm)&0xF0) ? 17 : (char)(imm) + 1,  \
-                                 ((char)(imm)&0xF0) ? 18 : (char)(imm) + 2,  \
-                                 ((char)(imm)&0xF0) ? 19 : (char)(imm) + 3,  \
-                                 ((char)(imm)&0xF0) ? 20 : (char)(imm) + 4,  \
-                                 ((char)(imm)&0xF0) ? 21 : (char)(imm) + 5,  \
-                                 ((char)(imm)&0xF0) ? 22 : (char)(imm) + 6,  \
-                                 ((char)(imm)&0xF0) ? 23 : (char)(imm) + 7,  \
-                                 ((char)(imm)&0xF0) ? 24 : (char)(imm) + 8,  \
-                                 ((char)(imm)&0xF0) ? 25 : (char)(imm) + 9,  \
-                                 ((char)(imm)&0xF0) ? 26 : (char)(imm) + 10, \
-                                 ((char)(imm)&0xF0) ? 27 : (char)(imm) + 11, \
-                                 ((char)(imm)&0xF0) ? 28 : (char)(imm) + 12, \
-                                 ((char)(imm)&0xF0) ? 29 : (char)(imm) + 13, \
-                                 ((char)(imm)&0xF0) ? 30 : (char)(imm) + 14, \
-                                 ((char)(imm)&0xF0) ? 31 : (char)(imm) + 15); })
+#define _mm_srli_si128(a, imm) \
+  ((__m128i)__builtin_ia32_psrldqi128_byteshift((__v2di)(__m128i)(a), (int)(imm)))
 
 #define _mm_bsrli_si128(a, imm) \
-  _mm_srli_si128((a), (imm))
+  ((__m128i)__builtin_ia32_psrldqi128_byteshift((__v2di)(__m128i)(a), (int)(imm)))
 
 /// Right-shifts each of 16-bit values in the 128-bit integer vector
 ///    operand by the specified number of bits. High-order bits are cleared.
@@ -3549,12 +3549,12 @@ _mm_load_si128(__m128i const *__p)
 ///    A pointer to a memory location containing integer values.
 /// \returns A 128-bit integer vector containing the moved values.
 static __inline__ __m128i __DEFAULT_FN_ATTRS
-_mm_loadu_si128(__m128i const *__p)
+_mm_loadu_si128(__m128i_u const *__p)
 {
   struct __loadu_si128 {
-    __m128i __v;
+    __m128i_u __v;
   } __attribute__((__packed__, __may_alias__));
-  return ((struct __loadu_si128*)__p)->__v;
+  return ((const struct __loadu_si128*)__p)->__v;
 }
 
 /// Returns a vector of [2 x i64] where the lower element is taken from
@@ -3570,12 +3570,12 @@ _mm_loadu_si128(__m128i const *__p)
 /// \returns A 128-bit vector of [2 x i64]. The lower order bits contain the
 ///    moved value. The higher order bits are cleared.
 static __inline__ __m128i __DEFAULT_FN_ATTRS
-_mm_loadl_epi64(__m128i const *__p)
+_mm_loadl_epi64(__m128i_u const *__p)
 {
   struct __mm_loadl_epi64_struct {
     long long __u;
   } __attribute__((__packed__, __may_alias__));
-  return __extension__ (__m128i) { ((struct __mm_loadl_epi64_struct*)__p)->__u, 0};
+  return __extension__ (__m128i) { ((const struct __mm_loadl_epi64_struct*)__p)->__u, 0};
 }
 
 /// Generates a 128-bit vector of [4 x i32] with unspecified content.
@@ -4012,12 +4012,75 @@ _mm_store_si128(__m128i *__p, __m128i __b)
 /// \param __b
 ///    A 128-bit integer vector containing the values to be moved.
 static __inline__ void __DEFAULT_FN_ATTRS
-_mm_storeu_si128(__m128i *__p, __m128i __b)
+_mm_storeu_si128(__m128i_u *__p, __m128i __b)
 {
   struct __storeu_si128 {
-    __m128i __v;
+    __m128i_u __v;
   } __attribute__((__packed__, __may_alias__));
   ((struct __storeu_si128*)__p)->__v = __b;
+}
+
+/// Stores a 64-bit integer value from the low element of a 128-bit integer
+///    vector.
+///
+/// \headerfile <x86intrin.h>
+///
+/// This intrinsic corresponds to the <c> VMOVQ / MOVQ </c> instruction.
+///
+/// \param __p
+///    A pointer to a 64-bit memory location. The address of the memory
+///    location does not have to be aligned.
+/// \param __b
+///    A 128-bit integer vector containing the value to be stored.
+static __inline__ void __DEFAULT_FN_ATTRS
+_mm_storeu_si64(void *__p, __m128i __b)
+{
+  struct __storeu_si64 {
+    long long __v;
+  } __attribute__((__packed__, __may_alias__));
+  ((struct __storeu_si64*)__p)->__v = ((__v2di)__b)[0];
+}
+
+/// Stores a 32-bit integer value from the low element of a 128-bit integer
+///    vector.
+///
+/// \headerfile <x86intrin.h>
+///
+/// This intrinsic corresponds to the <c> VMOVD / MOVD </c> instruction.
+///
+/// \param __p
+///    A pointer to a 32-bit memory location. The address of the memory
+///    location does not have to be aligned.
+/// \param __b
+///    A 128-bit integer vector containing the value to be stored.
+static __inline__ void __DEFAULT_FN_ATTRS
+_mm_storeu_si32(void *__p, __m128i __b)
+{
+  struct __storeu_si32 {
+    int __v;
+  } __attribute__((__packed__, __may_alias__));
+  ((struct __storeu_si32*)__p)->__v = ((__v4si)__b)[0];
+}
+
+/// Stores a 16-bit integer value from the low element of a 128-bit integer
+///    vector.
+///
+/// \headerfile <x86intrin.h>
+///
+/// This intrinsic does not correspond to a specific instruction.
+///
+/// \param __p
+///    A pointer to a 16-bit memory location. The address of the memory
+///    location does not have to be aligned.
+/// \param __b
+///    A 128-bit integer vector containing the value to be stored.
+static __inline__ void __DEFAULT_FN_ATTRS
+_mm_storeu_si16(void *__p, __m128i __b)
+{
+  struct __storeu_si16 {
+    short __v;
+  } __attribute__((__packed__, __may_alias__));
+  ((struct __storeu_si16*)__p)->__v = ((__v8hi)__b)[0];
 }
 
 /// Moves bytes selected by the mask from the first operand to the
@@ -4061,7 +4124,7 @@ _mm_maskmoveu_si128(__m128i __d, __m128i __n, char *__p)
 ///    A 128-bit integer vector of [2 x i64]. The lower 64 bits contain the
 ///    value to be stored.
 static __inline__ void __DEFAULT_FN_ATTRS
-_mm_storel_epi64(__m128i *__p, __m128i __a)
+_mm_storel_epi64(__m128i_u *__p, __m128i __a)
 {
   struct __mm_storel_epi64_struct {
     long long __u;
@@ -4121,7 +4184,7 @@ _mm_stream_si128(__m128i *__p, __m128i __a)
 ///    A pointer to the 32-bit memory location used to store the value.
 /// \param __a
 ///    A 32-bit integer containing the value to be stored.
-static __inline__ void __DEFAULT_FN_ATTRS
+static __inline__ void __attribute__((__always_inline__, __nodebug__, __target__("sse2")))
 _mm_stream_si32(int *__p, int __a)
 {
   __builtin_ia32_movnti(__p, __a);
@@ -4141,7 +4204,7 @@ _mm_stream_si32(int *__p, int __a)
 ///    A pointer to the 64-bit memory location used to store the value.
 /// \param __a
 ///    A 64-bit integer containing the value to be stored.
-static __inline__ void __DEFAULT_FN_ATTRS
+static __inline__ void __attribute__((__always_inline__, __nodebug__, __target__("sse2")))
 _mm_stream_si64(long long *__p, long long __a)
 {
   __builtin_ia32_movnti64(__p, __a);
@@ -4274,20 +4337,55 @@ _mm_packus_epi16(__m128i __a, __m128i __b)
   return (__m128i)__builtin_ia32_packuswb128((__v8hi)__a, (__v8hi)__b);
 }
 
-static __inline__ int __DEFAULT_FN_ATTRS
-_mm_extract_epi16(__m128i __a, int __imm)
-{
-  __v8hi __b = (__v8hi)__a;
-  return (unsigned short)__b[__imm & 7];
-}
+/// Extracts 16 bits from a 128-bit integer vector of [8 x i16], using
+///    the immediate-value parameter as a selector.
+///
+/// \headerfile <x86intrin.h>
+///
+/// This intrinsic corresponds to the <c> VPEXTRW / PEXTRW </c> instruction.
+///
+/// \param __a
+///    A 128-bit integer vector.
+/// \param __imm
+///    An immediate value. Bits [2:0] selects values from \a __a to be assigned
+///    to bits[15:0] of the result. \n
+///    000: assign values from bits [15:0] of \a __a. \n
+///    001: assign values from bits [31:16] of \a __a. \n
+///    010: assign values from bits [47:32] of \a __a. \n
+///    011: assign values from bits [63:48] of \a __a. \n
+///    100: assign values from bits [79:64] of \a __a. \n
+///    101: assign values from bits [95:80] of \a __a. \n
+///    110: assign values from bits [111:96] of \a __a. \n
+///    111: assign values from bits [127:112] of \a __a.
+/// \returns An integer, whose lower 16 bits are selected from the 128-bit
+///    integer vector parameter and the remaining bits are assigned zeros.
+#define _mm_extract_epi16(a, imm) \
+  ((int)(unsigned short)__builtin_ia32_vec_ext_v8hi((__v8hi)(__m128i)(a), \
+                                                    (int)(imm)))
 
-static __inline__ __m128i __DEFAULT_FN_ATTRS
-_mm_insert_epi16(__m128i __a, int __b, int __imm)
-{
-  __v8hi __c = (__v8hi)__a;
-  __c[__imm & 7] = __b;
-  return (__m128i)__c;
-}
+/// Constructs a 128-bit integer vector by first making a copy of the
+///    128-bit integer vector parameter, and then inserting the lower 16 bits
+///    of an integer parameter into an offset specified by the immediate-value
+///    parameter.
+///
+/// \headerfile <x86intrin.h>
+///
+/// This intrinsic corresponds to the <c> VPINSRW / PINSRW </c> instruction.
+///
+/// \param __a
+///    A 128-bit integer vector of [8 x i16]. This vector is copied to the
+///    result and then one of the eight elements in the result is replaced by
+///    the lower 16 bits of \a __b.
+/// \param __b
+///    An integer. The lower 16 bits of this parameter are written to the
+///    result beginning at an offset specified by \a __imm.
+/// \param __imm
+///    An immediate value specifying the bit offset in the result at which the
+///    lower 16 bits of \a __b are written.
+/// \returns A 128-bit integer vector containing the constructed values.
+#define _mm_insert_epi16(a, b, imm) \
+  ((__m128i)__builtin_ia32_vec_set_v8hi((__v8hi)(__m128i)(a), (int)(b), \
+                                        (int)(imm)))
 
 /// Copies the values of the most significant bits from each 8-bit
 ///    element in a 128-bit integer vector of [16 x i8] to create a 16-bit mask
@@ -4307,27 +4405,96 @@ _mm_movemask_epi8(__m128i __a)
   return __builtin_ia32_pmovmskb128((__v16qi)__a);
 }
 
-#define _mm_shuffle_epi32(a, imm) __extension__ ({ \
-  (__m128i)__builtin_shufflevector((__v4si)(__m128i)(a), \
-                                   (__v4si)_mm_undefined_si128(), \
-                                   ((imm) >> 0) & 0x3, ((imm) >> 2) & 0x3, \
-                                   ((imm) >> 4) & 0x3, ((imm) >> 6) & 0x3); })
+/// Constructs a 128-bit integer vector by shuffling four 32-bit
+///    elements of a 128-bit integer vector parameter, using the immediate-value
+///    parameter as a specifier.
+///
+/// \headerfile <x86intrin.h>
+///
+/// \code
+/// __m128i _mm_shuffle_epi32(__m128i a, const int imm);
+/// \endcode
+///
+/// This intrinsic corresponds to the <c> VPSHUFD / PSHUFD </c> instruction.
+///
+/// \param a
+///    A 128-bit integer vector containing the values to be copied.
+/// \param imm
+///    An immediate value containing an 8-bit value specifying which elements to
+///    copy from a. The destinations within the 128-bit destination are assigned
+///    values as follows: \n
+///    Bits [1:0] are used to assign values to bits [31:0] of the result. \n
+///    Bits [3:2] are used to assign values to bits [63:32] of the result. \n
+///    Bits [5:4] are used to assign values to bits [95:64] of the result. \n
+///    Bits [7:6] are used to assign values to bits [127:96] of the result. \n
+///    Bit value assignments: \n
+///    00: assign values from bits [31:0] of \a a. \n
+///    01: assign values from bits [63:32] of \a a. \n
+///    10: assign values from bits [95:64] of \a a. \n
+///    11: assign values from bits [127:96] of \a a.
+/// \returns A 128-bit integer vector containing the shuffled values.
+#define _mm_shuffle_epi32(a, imm) \
+  ((__m128i)__builtin_ia32_pshufd((__v4si)(__m128i)(a), (int)(imm)))
 
-#define _mm_shufflelo_epi16(a, imm) __extension__ ({ \
-  (__m128i)__builtin_shufflevector((__v8hi)(__m128i)(a), \
-                                   (__v8hi)_mm_undefined_si128(), \
-                                   ((imm) >> 0) & 0x3, ((imm) >> 2) & 0x3, \
-                                   ((imm) >> 4) & 0x3, ((imm) >> 6) & 0x3, \
-                                   4, 5, 6, 7); })
+/// Constructs a 128-bit integer vector by shuffling four lower 16-bit
+///    elements of a 128-bit integer vector of [8 x i16], using the immediate
+///    value parameter as a specifier.
+///
+/// \headerfile <x86intrin.h>
+///
+/// \code
+/// __m128i _mm_shufflelo_epi16(__m128i a, const int imm);
+/// \endcode
+///
+/// This intrinsic corresponds to the <c> VPSHUFLW / PSHUFLW </c> instruction.
+///
+/// \param a
+///    A 128-bit integer vector of [8 x i16]. Bits [127:64] are copied to bits
+///    [127:64] of the result.
+/// \param imm
+///    An 8-bit immediate value specifying which elements to copy from \a a. \n
+///    Bits[1:0] are used to assign values to bits [15:0] of the result. \n
+///    Bits[3:2] are used to assign values to bits [31:16] of the result. \n
+///    Bits[5:4] are used to assign values to bits [47:32] of the result. \n
+///    Bits[7:6] are used to assign values to bits [63:48] of the result. \n
+///    Bit value assignments: \n
+///    00: assign values from bits [15:0] of \a a. \n
+///    01: assign values from bits [31:16] of \a a. \n
+///    10: assign values from bits [47:32] of \a a. \n
+///    11: assign values from bits [63:48] of \a a. \n
+/// \returns A 128-bit integer vector containing the shuffled values.
+#define _mm_shufflelo_epi16(a, imm) \
+  ((__m128i)__builtin_ia32_pshuflw((__v8hi)(__m128i)(a), (int)(imm)))
 
-#define _mm_shufflehi_epi16(a, imm) __extension__ ({ \
-  (__m128i)__builtin_shufflevector((__v8hi)(__m128i)(a), \
-                                   (__v8hi)_mm_undefined_si128(), \
-                                   0, 1, 2, 3, \
-                                   4 + (((imm) >> 0) & 0x3), \
-                                   4 + (((imm) >> 2) & 0x3), \
-                                   4 + (((imm) >> 4) & 0x3), \
-                                   4 + (((imm) >> 6) & 0x3)); })
+/// Constructs a 128-bit integer vector by shuffling four upper 16-bit
+///    elements of a 128-bit integer vector of [8 x i16], using the immediate
+///    value parameter as a specifier.
+///
+/// \headerfile <x86intrin.h>
+///
+/// \code
+/// __m128i _mm_shufflehi_epi16(__m128i a, const int imm);
+/// \endcode
+///
+/// This intrinsic corresponds to the <c> VPSHUFHW / PSHUFHW </c> instruction.
+///
+/// \param a
+///    A 128-bit integer vector of [8 x i16]. Bits [63:0] are copied to bits
+///    [63:0] of the result.
+/// \param imm
+///    An 8-bit immediate value specifying which elements to copy from \a a. \n
+///    Bits[1:0] are used to assign values to bits [79:64] of the result. \n
+///    Bits[3:2] are used to assign values to bits [95:80] of the result. \n
+///    Bits[5:4] are used to assign values to bits [111:96] of the result. \n
+///    Bits[7:6] are used to assign values to bits [127:112] of the result. \n
+///    Bit value assignments: \n
+///    00: assign values from bits [79:64] of \a a. \n
+///    01: assign values from bits [95:80] of \a a. \n
+///    10: assign values from bits [111:96] of \a a. \n
+///    11: assign values from bits [127:112] of \a a. \n
+/// \returns A 128-bit integer vector containing the shuffled values.
+#define _mm_shufflehi_epi16(a, imm) \
+  ((__m128i)__builtin_ia32_pshufhw((__v8hi)(__m128i)(a), (int)(imm)))
 
 /// Unpacks the high-order (index 8-15) values from two 128-bit vectors
 ///    of [16 x i8] and interleaves them into a 128-bit vector of [16 x i8].
@@ -4681,8 +4848,8 @@ _mm_movemask_pd(__m128d __a)
 ///    Bit[1] = 1: upper element of \a b copied to upper element of result. \n
 /// \returns A 128-bit vector of [2 x double] containing the shuffled values.
 #define _mm_shuffle_pd(a, b, i) \
-  (__m128d)__builtin_ia32_shufpd((__v2df)(__m128d)(a), (__v2df)(__m128d)(b), \
-                                 (int)(i))
+  ((__m128d)__builtin_ia32_shufpd((__v2df)(__m128d)(a), (__v2df)(__m128d)(b), \
+                                  (int)(i)))
 
 /// Casts a 128-bit floating-point vector of [2 x double] into a 128-bit
 ///    floating-point vector of [4 x float].
@@ -4807,10 +4974,10 @@ void _mm_pause(void);
 
 #define _MM_SHUFFLE2(x, y) (((x) << 1) | (y))
 
-#define _MM_DENORMALS_ZERO_ON   (0x0040)
-#define _MM_DENORMALS_ZERO_OFF  (0x0000)
+#define _MM_DENORMALS_ZERO_ON   (0x0040U)
+#define _MM_DENORMALS_ZERO_OFF  (0x0000U)
 
-#define _MM_DENORMALS_ZERO_MASK (0x0040)
+#define _MM_DENORMALS_ZERO_MASK (0x0040U)
 
 #define _MM_GET_DENORMALS_ZERO_MODE() (_mm_getcsr() & _MM_DENORMALS_ZERO_MASK)
 #define _MM_SET_DENORMALS_ZERO_MODE(x) (_mm_setcsr((_mm_getcsr() & ~_MM_DENORMALS_ZERO_MASK) | (x)))
